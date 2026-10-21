@@ -430,7 +430,7 @@ void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,0.,d);a*=a;
 const fireflies=new THREE.Points(ffGeo,ffMat);fireflies.frustumCulled=false;fireflies.renderOrder=4;scene.add(fireflies);
 
 const mist=[];
-for(let i=0;i<10;i++){
+for(let i=0;i<0;i++){ /* sis kapalı */
   const m=new THREE.Sprite(new THREE.SpriteMaterial({map:TEX.soft,color:0x6f86c8,opacity:.05+Math.random()*.05,depthWrite:false,fog:false,transparent:true}));
   const s=11+Math.random()*9;m.scale.set(s,s*.6,1);m.renderOrder=2;
   m.userData={bx:(Math.random()-.5)*26,bz:(Math.random()-.5)*26,y:.1+Math.random()*.9,sp:.03+Math.random()*.04,ph:Math.random()*TAU};
