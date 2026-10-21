@@ -9,17 +9,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Küp Adası">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Küp Adası</title>
 <style>
-:root{--sat:0px;--sar:0px;--sab:0px;--sal:0px;--ink:#dfe8ff;--glass:rgba(18,26,52,.74);--edge:rgba(160,185,255,.18)}
+:root{--sat:env(safe-area-inset-top,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--ink:#dfe8ff;--glass:rgba(18,26,52,.74);--edge:rgba(160,185,255,.18)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;background:#050914;overflow:hidden;font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);overscroll-behavior:none;-webkit-touch-callout:none}
-canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-#ui{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.6s ease;padding:var(--sat) var(--sar) var(--sab) var(--sal)}
+canvas#gl{position:fixed;left:0;top:0;width:100%;height:100%;height:max(100%,100lvh);display:block;touch-action:none}
+#ui{position:fixed;left:0;top:0;width:100%;height:100%;height:max(100%,100lvh);pointer-events:none;opacity:0;transition:opacity 1.6s ease;padding:var(--sat) var(--sar) var(--sab) var(--sal)}
 #ui.ready{opacity:1}
 #top{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px}
 .glass{background:var(--glass);border:1px solid var(--edge)}
@@ -43,7 +43,7 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 #cur canvas{width:40px;height:40px}
 #toast{position:absolute;left:0;right:0;top:24%;text-align:center;font-size:30px;font-weight:300;letter-spacing:.3em;opacity:0;transition:opacity .9s ease;text-shadow:0 0 24px rgba(130,170,255,.7)}
 #toast.show{opacity:1}
-#intro{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:radial-gradient(circle at 50% 45%,rgba(5,9,20,.5),rgba(5,9,20,.88));transition:opacity 1.4s ease;cursor:pointer;z-index:5}
+#intro{position:fixed;left:0;top:0;width:100%;height:100%;height:max(100%,100lvh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:radial-gradient(circle at 50% 45%,rgba(5,9,20,.5),rgba(5,9,20,.88));transition:opacity 1.4s ease;cursor:pointer;z-index:5}
 #intro.gone{opacity:0;pointer-events:none;visibility:hidden;transition:opacity 1.4s ease,visibility 0s 1.4s}
 #intro h1{margin:0;font-weight:200;font-size:clamp(34px,10vw,64px);letter-spacing:.35em;padding-left:.35em;text-shadow:0 0 30px rgba(120,170,255,.6)}
 #intro p{margin:0;font-size:15px;letter-spacing:.14em;color:#aab9e0}
@@ -95,10 +95,18 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18);box-shadow:
 input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(160,185,255,.18)}
 input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:linear-gradient(90deg,#4de3c1,#62c8ff)}
 input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#eafff8;box-shadow:0 0 0 5px rgba(125,255,208,.14),0 0 18px rgba(125,255,208,.65)}
+body.nopad #pad{display:none}
+body.nopad #hint{bottom:calc(36px + var(--sab))}
+.tgl-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tgl-row span{font-size:14px;letter-spacing:.04em;color:var(--ink)}
+.tgl{flex:none;position:relative;width:52px;height:30px;border-radius:99px;border:1px solid var(--edge);background:rgba(160,185,255,.16);cursor:pointer;padding:0;transition:background .3s,border-color .3s}
+.tgl i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#cfd9f5;transition:transform .25s ease,background .3s,box-shadow .3s}
+.tgl[aria-checked=true]{background:linear-gradient(90deg,#4de3c1,#62c8ff);border-color:transparent}
+.tgl[aria-checked=true] i{transform:translateX(22px);background:#eafff8;box-shadow:0 0 12px rgba(125,255,208,.6)}
 @media(prefers-reduced-motion:reduce){.page,.page.open,.rise,.page.open .rise,.pg-head .rule{transition-duration:.01s!important;transition-delay:0s!important}}
 </style>
 </head>
-<body>
+<body class="nopad">
 <canvas id="gl"></canvas>
 <div id="ui">
   <div id="top">
@@ -936,6 +944,32 @@ function addDevSection(sec){
   $('safeNote').textContent=SAFE?'Güvenli mod açık: gelişmiş modüller yüklenmedi.':'Bir sorun olursa adres sonuna ?safe=1 ekleyerek oyunu gelişmiş modüller olmadan açabilirsin.';
 })();
 
+/* ---- yerleşik bölüm: ekran tuşlarını (yön paneli) aç/kapat — varsayılan KAPALI ---- */
+(function(){
+  const applyPad=on=>document.body.classList.toggle('nopad',!on);
+  let on=devStore.get('padVisible',false)===true,sw=null;
+  const paint=()=>{if(sw)sw.setAttribute('aria-checked',on?'true':'false');};
+  applyPad(on);
+  addDevSection({
+    id:'pad',title:'EKRAN TUŞLARI',
+    render(body){
+      const row=document.createElement('div');row.className='tgl-row';
+      const t=document.createElement('span');t.textContent='Alttaki şekil tuşlarını göster';
+      sw=document.createElement('button');sw.className='tgl';sw.type='button';sw.setAttribute('role','switch');sw.setAttribute('aria-label','Alttaki şekil tuşlarını göster');
+      sw.appendChild(document.createElement('i'));
+      sw.addEventListener('click',()=>{
+        on=!on;applyPad(on);devStore.set('padVisible',on);paint();
+        if(ac&&!muted)pluck(SCALE[on?5:3],.25,0,.6);
+      });
+      row.appendChild(t);row.appendChild(sw);body.appendChild(row);
+      const n=document.createElement('p');n.className='note';
+      n.textContent='Kapalıyken kaydırarak, dokunarak ya da klavyedeki ok tuşlarıyla oynarsın.';
+      body.appendChild(n);paint();
+    },
+    onReset(){on=false;applyPad(false);paint();}
+  });
+})();
+
 window.KUP=Object.freeze({
   version:'1.1',safe:SAFE,
   on(ev,fn){(KL[ev]=KL[ev]||[]).push(fn);},
@@ -974,7 +1008,7 @@ camGoal.dist=14;
 const camT=new THREE.Vector3(camGoal.cx,0,camGoal.cz);
 let camDist=16;
 function resize(){
-  const w=window.innerWidth,h=window.innerHeight;
+  const w=canvas.clientWidth||window.innerWidth,h=canvas.clientHeight||window.innerHeight;
   calcPR();
   renderer.setPixelRatio(PR);
   renderer.setSize(w,h,false);
@@ -984,7 +1018,11 @@ function resize(){
   const sc=(h*PR)/(2*Math.tan(FOV*Math.PI/360));
   pMat.uniforms.uScale.value=sc;ffMat.uniforms.uScale.value=sc;
 }
-window.addEventListener('resize',resize);resize();
+window.addEventListener('resize',resize);
+window.addEventListener('orientationchange',function(){setTimeout(resize,250);});
+if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+window.addEventListener('load',function(){setTimeout(resize,300);setTimeout(resize,1200);});
+resize();
 
 /* ---- ambient water drops ---- */
 let nextAmb=4;
