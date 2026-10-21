@@ -233,11 +233,20 @@ function drawSym(g,id,cx,cy,r,mode,glow){
   }
   g.restore();
 }
+function drawLit(g,id,cx,cy,r){
+  g.save();g.lineJoin='round';g.lineCap='round';
+  const col=PAL[id];
+  symPath(g,id,cx,cy,r);
+  g.globalAlpha=1;g.fillStyle=col;g.fill();        /* iç dolgu: çizgiyle birebir aynı renk */
+  g.globalAlpha=1;g.shadowColor=col;g.shadowBlur=34;
+  symPath(g,id,cx,cy,r);g.strokeStyle=col;g.lineWidth=r*.2;g.stroke();  /* eşleşmemişle aynı çizgi kalınlığı */
+  g.restore();
+}
 function mkCanvas(n){const c=document.createElement('canvas');c.width=c.height=n;return c;}
 function mkHi(){const c=mkCanvas(512);c.getContext('2d').scale(2,2);return c;} /* 256 birimlik çizim, 512 piksel doku */
 function hexA(h,a){const c=new THREE.Color(h);return 'rgba('+((c.r*255)|0)+','+((c.g*255)|0)+','+((c.b*255)|0)+','+a+')';}
 
-const TEX={face:[],faceGlow:[],out:[],fill:[],glow:null,soft:null};
+const TEX={face:[],faceGlow:[],out:[],fill:[],lit:[],rim:null,glow:null,soft:null};
 for(let i=0;i<6;i++){
   let c=mkHi(),g=c.getContext('2d');
   const gr=g.createLinearGradient(0,0,256,256);gr.addColorStop(0,'#1f2d55');gr.addColorStop(1,'#131b36');
@@ -253,11 +262,14 @@ for(let i=0;i<6;i++){
   TEX.out.push(new THREE.CanvasTexture(c));
   c=mkHi();g=c.getContext('2d');drawSym(g,i,128,128,70,'fill',68);
   TEX.fill.push(new THREE.CanvasTexture(c));
+  c=mkHi();g=c.getContext('2d');drawLit(g,i,128,128,70);
+  TEX.lit.push(new THREE.CanvasTexture(c));
 }
 (function(){
   let c=mkCanvas(128),g=c.getContext('2d');
   let rg=g.createRadialGradient(64,64,0,64,64,64);rg.addColorStop(0,'rgba(255,255,255,.9)');rg.addColorStop(.35,'rgba(255,255,255,.3)');rg.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle=rg;g.fillRect(0,0,128,128);TEX.glow=new THREE.CanvasTexture(c);
+  c=mkCanvas(256);g=c.getContext('2d');g.strokeStyle='#fff';g.lineWidth=7;g.shadowColor='#fff';g.shadowBlur=12;g.strokeRect(14,14,228,228);TEX.rim=new THREE.CanvasTexture(c);
   c=mkCanvas(128);g=c.getContext('2d');rg=g.createRadialGradient(64,64,0,64,64,64);rg.addColorStop(0,'rgba(255,255,255,.5)');rg.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle=rg;g.fillRect(0,0,128,128);TEX.soft=new THREE.CanvasTexture(c);
 })();
@@ -278,7 +290,7 @@ function calcPR(){
 calcPR();
 renderer.setPixelRatio(PR);
 renderer.localClippingEnabled=true;
-try{const MAXA=Math.min(8,renderer.capabilities.getMaxAnisotropy());[].concat(TEX.face,TEX.faceGlow,TEX.out,TEX.fill).forEach(t=>{t.anisotropy=MAXA;});}catch(e){}
+try{const MAXA=Math.min(8,renderer.capabilities.getMaxAnisotropy());[].concat(TEX.face,TEX.faceGlow,TEX.out,TEX.fill,TEX.lit).forEach(t=>{t.anisotropy=MAXA;});}catch(e){}
 renderer.setClearColor(0x050914);
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(0x0a1330,0.016);
@@ -436,7 +448,7 @@ const mkSide=()=>new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(
 const mkBot=()=>new THREE.MeshStandardMaterial({color:0x0b1022,roughness:1});
 const sideMat=mkSide(),botMat=mkBot(),sideMatM=mkSide(),botMatM=mkBot();
 sideMatM.clippingPlanes=[mirrorPlane];botMatM.clippingPlanes=[mirrorPlane];
-const decalGeo=new THREE.PlaneGeometry(.74,.74),glowGeo=new THREE.PlaneGeometry(3,3);
+const decalGeo=new THREE.PlaneGeometry(.74,.74),glowGeo=new THREE.PlaneGeometry(3,3),rimGeo=new THREE.PlaneGeometry(S,S);
 
 const tiles=new Map();
 const dying=[];
@@ -485,7 +497,7 @@ function updateTile(tile,dt){
   y+=bob+pv*.14;
   tile.root.position.y=y;tile.mir.position.y=y;
   tile.litv+=((tile.lit?1:0)-tile.litv)*(1-Math.exp(-dt*5));
-  _c.copy(tile.litCol).multiplyScalar(tile.litv*.55+pv*.35);
+  _c.copy(tile.litCol).multiplyScalar(tile.litv*.03+pv*.35);
   tile.topM.emissive.copy(_c);tile.topMm.emissive.copy(_c);
 }
 
@@ -494,12 +506,14 @@ function makeFx(tile,face){
   const fx={tile,face,k:0,mode:'in',lit:false,lv:0,nope:0,popT:-9,phase:Math.random()*TAU};
   fx.dm=new THREE.MeshBasicMaterial({map:TEX.out[face],transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0,fog:false});
   fx.gm=new THREE.MeshBasicMaterial({map:TEX.glow,color:PALN[face],transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0,fog:false});
+  fx.lm=new THREE.MeshBasicMaterial({map:TEX.lit[face],transparent:true,depthWrite:false,opacity:0,fog:false});
   fx.d=new THREE.Mesh(decalGeo,fx.dm);fx.d.rotation.x=-HALF;fx.d.position.y=.016;fx.d.renderOrder=3;
-  fx.g=new THREE.Mesh(glowGeo,fx.gm);fx.g.rotation.x=-HALF;fx.g.position.y=.02;fx.g.renderOrder=3;
-  tile.root.add(fx.d,fx.g);
+  fx.g=new THREE.Mesh(glowGeo,fx.gm);fx.g.rotation.x=-HALF;fx.g.position.y=.02;fx.g.renderOrder=3;fx.g.scale.set(.8,.8,.8);
+  fx.l=new THREE.Mesh(decalGeo,fx.lm);fx.l.rotation.x=-HALF;fx.l.position.y=.022;fx.l.renderOrder=4;
+  tile.root.add(fx.d,fx.g,fx.l);
   return fx;
 }
-function removeFx(fx){fx.tile.root.remove(fx.d,fx.g);fx.dm.dispose();fx.gm.dispose();}
+function removeFx(fx){fx.tile.root.remove(fx.d,fx.g,fx.l);fx.dm.dispose();fx.gm.dispose();fx.lm.dispose();}
 function updateFx(dt){
   for(let i=fxList.length-1;i>=0;i--){
     const fx=fxList[i];
@@ -508,11 +522,13 @@ function updateFx(dt){
     fx.lv+=((fx.lit?1:0)-fx.lv)*(1-Math.exp(-dt*5));
     const br=.5+.5*Math.sin(now*2+fx.phase);
     fx.nope=Math.max(0,fx.nope-dt*1.6);
-    fx.dm.opacity=Math.min(1,fx.k*(fx.lit?.95:.38+.27*br)+fx.nope*.55);
-    fx.gm.opacity=fx.k*(.08+.5*fx.lv)*(fx.lit?1:.6+.4*br)+fx.nope*.15;
+    const unl=1-fx.lv;
+    fx.dm.opacity=Math.min(1,(fx.k*(.45+.35*br)+fx.nope*.55)*unl);
+    fx.gm.opacity=fx.k*(.05*unl*(.6+.4*br)+.24*fx.lv*(.85+.15*br))+fx.nope*.15*unl;
+    fx.lm.opacity=fx.k*fx.lv*(.9+.1*br);
     const pp=now-fx.popT;
     const sc=1+((pp>=0&&pp<.7)?.4*Math.sin(pp/.7*Math.PI):0);
-    fx.d.scale.set(sc,sc,sc);
+    fx.d.scale.set(sc,sc,sc);fx.l.scale.set(sc,sc,sc);
   }
 }
 
@@ -809,7 +825,7 @@ function onLand(r){
 function unlock(tile){
   const face=tile.target.face,col=PALN[face];
   tile.lit=true;tile.litCol.copy(col);
-  tile.fx.lit=true;tile.fx.dm.map=TEX.fill[face];tile.fx.popT=now;
+  tile.fx.lit=true;tile.fx.popT=now;
   history[history.length-1].unlocked=tile;
   const y=tile.root.position.y;
   ringBurst(tile.x,y+.05,tile.z,col,28,1.7,.1);
