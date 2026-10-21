@@ -4,28 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#050914">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Küp Adası">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Küp Adası</title>
 <style>
-:root{--ink:#dfe8ff;--glass:rgba(18,26,52,.74);--edge:rgba(160,185,255,.18)}
+:root{--sat:0px;--sar:0px;--sab:0px;--sal:0px;--ink:#dfe8ff;--glass:rgba(18,26,52,.74);--edge:rgba(160,185,255,.18)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-html,body{margin:0;height:100%;background:#050914;overflow:hidden;font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);overscroll-behavior:none}
+html,body{margin:0;height:100%;background:#050914;overflow:hidden;font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);overscroll-behavior:none;-webkit-touch-callout:none}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-#ui{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.6s ease;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#ui{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.6s ease;padding:var(--sat) var(--sar) var(--sab) var(--sal)}
 #ui.ready{opacity:1}
-#top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+#top{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px}
 .glass{background:var(--glass);border:1px solid var(--edge)}
 #lvl{display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:999px;font-size:14px;letter-spacing:.08em}
 #lvl b{font-weight:600;font-size:16px}
 #dots{display:flex;gap:6px}
 #dots i{width:9px;height:9px;border-radius:50%;background:rgba(160,185,255,.22);transition:all .5s ease}
 #dots i.on{background:#9fffe0;box-shadow:0 0 10px #7dffd0}
-#btns{display:flex;gap:10px;pointer-events:auto}
+#btns{display:grid;grid-template-columns:repeat(2,42px);gap:10px;pointer-events:auto}
 #btns button{width:42px;height:42px;border-radius:50%;color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
 #btns button:active{transform:scale(.92)}
 #snd.off .waves{opacity:0}
-#hint{position:absolute;left:0;right:0;bottom:calc(214px + env(safe-area-inset-bottom));text-align:center;font-size:13px;letter-spacing:.04em;opacity:.0;transition:opacity 1.2s ease;padding:0 28px;line-height:1.5;color:#b9c8ee}
+#hint{position:absolute;left:0;right:0;bottom:calc(214px + var(--sab));text-align:center;font-size:13px;letter-spacing:.04em;opacity:.0;transition:opacity 1.2s ease;padding:0 28px;line-height:1.5;color:#b9c8ee}
 #hint.show{opacity:.85}
-#pad{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);width:176px;height:176px}
+#pad{position:absolute;left:50%;bottom:calc(18px + var(--sab));transform:translateX(-50%);width:176px;height:176px}
 .pb{position:absolute;width:70px;height:70px;border-radius:24px;display:grid;place-items:center;pointer-events:auto;cursor:pointer;transition:transform .12s ease,background .2s}
 .pb:active{transform:scale(.9);background:rgba(60,80,150,.6)}
 .pb canvas{width:44px;height:44px;opacity:.92}
@@ -40,6 +49,53 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 #intro p{margin:0;font-size:15px;letter-spacing:.14em;color:#aab9e0}
 #intro .go{margin-top:26px;font-size:13px;animation:br 2.6s ease-in-out infinite}
 @keyframes br{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* ===== MENÜ SAYFALARI (Ayarlar / Gelişmiş) ===== */
+#lvl{margin-top:2px}
+#btnDev{opacity:.72}
+#top,#pad{transition:opacity .5s ease}
+body.paged #top,body.paged #pad,body.paged #hint{opacity:0}
+.page{position:fixed;inset:0;z-index:7;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:calc(18px + var(--sat)) calc(18px + var(--sar)) calc(32px + var(--sab)) calc(18px + var(--sal));
+  background:radial-gradient(ellipse 90% 55% at 50% 0%,rgba(46,70,150,.32),rgba(5,9,20,0) 70%),rgba(5,9,20,.92);
+  opacity:0;visibility:hidden;pointer-events:none;transform:translateY(18px) scale(.988);
+  transition:opacity .4s cubic-bezier(.22,.8,.3,1),transform .55s cubic-bezier(.22,.8,.3,1),visibility 0s linear .55s}
+.page.open{opacity:1;visibility:visible;pointer-events:auto;transform:none;
+  transition:opacity .55s cubic-bezier(.22,.8,.3,1),transform .8s cubic-bezier(.22,.8,.3,1),visibility 0s}
+.pg-in{max-width:560px;margin:0 auto}
+.pg-head{display:flex;align-items:center;gap:16px;position:relative;padding:6px 0 22px}
+.pg-head h2{margin:0;font-weight:300;font-size:18px;letter-spacing:.32em;text-shadow:0 0 22px rgba(130,170,255,.5)}
+.pg-head .rule{display:block;position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,rgba(160,185,255,.4),rgba(160,185,255,0));transform:scaleX(0);transform-origin:left;transition:transform .9s cubic-bezier(.22,.8,.3,1) .3s}
+.page.open .rule{transform:none}
+.back{width:42px;height:42px;border-radius:50%;color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .15s ease,background .25s}
+.back:active{transform:scale(.92)}
+.card{border-radius:22px;padding:20px 20px 18px;margin-top:16px}
+.row{display:flex;align-items:baseline;justify-content:space-between}
+.lab{font-size:12px;letter-spacing:.22em;color:#aab9e0}
+.val{font-weight:200;font-size:34px;letter-spacing:.04em;font-variant-numeric:tabular-nums;line-height:1}
+.val small{font-size:14px;margin-left:3px;opacity:.55}
+.slider{display:flex;align-items:center;gap:14px;margin-top:14px;color:#9fb0dc}
+.slider svg{flex:none;opacity:.75}
+.note{margin:12px 0 0;font-size:12.5px;line-height:1.65;color:#8fa0cc;letter-spacing:.02em}
+.empty{margin-top:16px;border:1px dashed rgba(160,185,255,.22);border-radius:22px;padding:36px 24px;text-align:center;color:#8fa0cc;font-size:13px;line-height:1.7;letter-spacing:.04em}
+.empty svg{opacity:.45;margin-bottom:12px}
+.empty b{display:block;font-weight:400;color:#b9c8ee;letter-spacing:.14em;margin-bottom:4px}
+.btn{margin-top:16px;padding:12px 20px;border-radius:999px;color:var(--ink);font:inherit;font-size:13px;letter-spacing:.08em;cursor:pointer;transition:transform .15s ease,background .3s,border-color .3s,color .3s}
+.btn:active{transform:scale(.97)}
+.btn.armed{border-color:rgba(255,111,145,.6);background:rgba(255,111,145,.14);color:#ffd3de}
+.btn.done{border-color:rgba(125,255,208,.6);background:rgba(125,255,208,.12);color:#c9fff0}
+@media(hover:hover){#btns button:hover,.back:hover,.btn:hover{background:rgba(40,56,110,.7)}}
+.rise{opacity:0;transform:translateY(14px);transition:opacity .3s ease,transform .3s ease}
+.page.open .rise{opacity:1;transform:none;transition:opacity .75s ease calc(var(--i,0)*85ms + 150ms),transform .85s cubic-bezier(.22,.8,.3,1) calc(var(--i,0)*85ms + 150ms)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:36px;background:transparent;margin:0;cursor:pointer;touch-action:pan-y;--p:100%}
+input[type=range]:focus{outline:none}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(90deg,#4de3c1,#62c8ff var(--p),rgba(160,185,255,.18) var(--p))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-8px;border-radius:50%;background:#eafff8;border:0;box-shadow:0 0 0 5px rgba(125,255,208,.14),0 0 18px rgba(125,255,208,.65);transition:transform .2s ease,box-shadow .2s ease}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18);box-shadow:0 0 0 8px rgba(125,255,208,.18),0 0 24px rgba(125,255,208,.85)}
+input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:rgba(160,185,255,.18)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:linear-gradient(90deg,#4de3c1,#62c8ff)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#eafff8;box-shadow:0 0 0 5px rgba(125,255,208,.14),0 0 18px rgba(125,255,208,.65)}
+@media(prefers-reduced-motion:reduce){.page,.page.open,.rise,.page.open .rise,.pg-head .rule{transition-duration:.01s!important;transition-delay:0s!important}}
 </style>
 </head>
 <body>
@@ -50,6 +106,8 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
     <div id="btns">
       <button id="undo" class="glass" aria-label="Geri al"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
       <button id="snd" class="glass" aria-label="Ses"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><g class="waves"><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/></g></svg></button>
+      <button id="btnSet" class="glass" aria-label="Ayarlar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></button>
+      <button id="btnDev" class="glass" aria-label="Gelişmiş"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 5l-3 14"/></svg></button>
     </div>
   </div>
   <div id="toast"></div>
@@ -67,6 +125,47 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
   <p>küpü devir · yüzünü eşleştir</p>
   <p class="go">başlamak için dokun</p>
 </div>
+
+
+<!-- ===== MENÜ SAYFALARI ===== -->
+<section class="page" id="pgSet" aria-hidden="true">
+  <div class="pg-in">
+    <header class="pg-head rise" style="--i:0">
+      <button class="glass back" data-back aria-label="Geri"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h2>AYARLAR</h2><i class="rule"></i>
+    </header>
+    <div class="card glass rise" style="--i:1">
+      <div class="row"><span class="lab">ANA SES</span><span class="val"><b id="volVal" style="font-weight:200">100</b><small>%</small></span></div>
+      <div class="slider">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/></svg>
+        <input type="range" id="vol" min="0" max="100" step="1" value="100" aria-label="Ana ses">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7"/><path d="M18.5 5.5a9 9 0 010 13"/></svg>
+      </div>
+      <p class="note">Müziği ve tüm efektleri birlikte yönetir.</p>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="pgDev" aria-hidden="true">
+  <div class="pg-in">
+    <header class="pg-head rise" style="--i:0">
+      <button class="glass back" data-back aria-label="Geri"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <h2>GELİŞMİŞ</h2><i class="rule"></i>
+    </header>
+    <div id="devSections"></div>
+    <div class="empty rise" id="devEmpty" style="--i:1">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 5l-3 14"/></svg>
+      <b>HENÜZ BOŞ</b>
+      Yeni ayarlar ve oyun modları burada görünecek.
+    </div>
+    <div class="card glass rise" style="--i:3">
+      <div class="row"><span class="lab">GÜVENLİK</span></div>
+      <p class="note">Gelişmiş modüllerin ayarları ana oyundan ayrı saklanır. Sıfırlamak yalnızca onları temizler; ana oyun ve ses ayarın etkilenmez.</p>
+      <button class="btn glass" id="devReset">Gelişmiş ayarları sıfırla</button>
+      <p class="note" id="safeNote" style="font-size:12px"></p>
+    </div>
+  </div>
+</section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -107,11 +206,12 @@ function drawSym(g,id,cx,cy,r,mode,glow){
   g.restore();
 }
 function mkCanvas(n){const c=document.createElement('canvas');c.width=c.height=n;return c;}
+function mkHi(){const c=mkCanvas(512);c.getContext('2d').scale(2,2);return c;} /* 256 birimlik çizim, 512 piksel doku */
 function hexA(h,a){const c=new THREE.Color(h);return 'rgba('+((c.r*255)|0)+','+((c.g*255)|0)+','+((c.b*255)|0)+','+a+')';}
 
 const TEX={face:[],faceGlow:[],out:[],fill:[],glow:null,soft:null};
 for(let i=0;i<6;i++){
-  let c=mkCanvas(256),g=c.getContext('2d');
+  let c=mkHi(),g=c.getContext('2d');
   const gr=g.createLinearGradient(0,0,256,256);gr.addColorStop(0,'#1f2d55');gr.addColorStop(1,'#131b36');
   g.fillStyle=gr;g.fillRect(0,0,256,256);
   const rg=g.createRadialGradient(128,128,8,128,128,150);rg.addColorStop(0,hexA(PAL[i],.3));rg.addColorStop(1,'rgba(0,0,0,0)');
@@ -119,11 +219,11 @@ for(let i=0;i<6;i++){
   g.strokeStyle='rgba(185,205,255,.28)';g.lineWidth=12;g.strokeRect(6,6,244,244);
   drawSym(g,i,128,128,60,'fill',0);
   TEX.face.push(new THREE.CanvasTexture(c));
-  c=mkCanvas(256);g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,256,256);drawSym(g,i,128,128,60,'fill',0);
+  c=mkHi();g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,256,256);drawSym(g,i,128,128,60,'fill',0);
   TEX.faceGlow.push(new THREE.CanvasTexture(c));
-  c=mkCanvas(256);g=c.getContext('2d');drawSym(g,i,128,128,70,'line',26);
+  c=mkHi();g=c.getContext('2d');drawSym(g,i,128,128,70,'line',52);
   TEX.out.push(new THREE.CanvasTexture(c));
-  c=mkCanvas(256);g=c.getContext('2d');drawSym(g,i,128,128,70,'fill',34);
+  c=mkHi();g=c.getContext('2d');drawSym(g,i,128,128,70,'fill',68);
   TEX.fill.push(new THREE.CanvasTexture(c));
 }
 (function(){
@@ -139,17 +239,18 @@ const canvas=document.getElementById('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
 /* Çözünürlük: ekran büyüdükçe piksel sayısı patlamasın diye toplam piksel bütçesi var.
    Ayrıca FPS düşerse (aşağıdaki izleyici) çarpan otomatik küçülür. */
-const PX_BUDGET=2.0e6;
+const PX_BUDGET=3.6e6;
 let prMul=1,PR=1;
 function calcPR(){
   const w=window.innerWidth,h=window.innerHeight;
-  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const dpr=Math.min(window.devicePixelRatio||1,2.5);
   const bud=Math.sqrt(PX_BUDGET/Math.max(1,w*h));
-  PR=clamp(Math.min(dpr,bud)*prMul,.55,dpr);
+  PR=clamp(Math.min(dpr,bud)*prMul,.7,dpr);
 }
 calcPR();
 renderer.setPixelRatio(PR);
 renderer.localClippingEnabled=true;
+try{const MAXA=Math.min(8,renderer.capabilities.getMaxAnisotropy());[].concat(TEX.face,TEX.faceGlow,TEX.out,TEX.fill).forEach(t=>{t.anisotropy=MAXA;});}catch(e){}
 renderer.setClearColor(0x050914);
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(0x0a1330,0.016);
@@ -414,12 +515,16 @@ function snapQuat(q){_m.makeRotationFromQuaternion(q);const e=_m.elements;for(le
 
 /* ================= GAME STATE ================= */
 let level=1,state='intro';
+let pageOpen=false,curPage=null;
 let roll=null,pending=null,landT=-9,cubeSpawnT=Infinity,cubeLanded=false,lastMoveT=0;
 let history=[];
 let noteIdx=4;
 
 /* ---- audio ---- */
 let ac=null,master=null,dryBus=null,revBus=null,noiseBuf=null,muted=false,padOsc=[];
+function loadVol(){try{const v=parseFloat(localStorage.getItem('kup.vol'));return isFinite(v)?clamp(v,0,1):1;}catch(e){return 1;}}
+let vol=loadVol();
+const masterTarget=()=>muted?0:.8*vol*vol; /* kare eğri: kaydırıcı kulağa daha doğal gelir */
 const SCALE=[60,62,64,67,69,72,74,76,79,81,84];
 const CH=[[45,57,60,64,67],[41,53,57,60,64],[48,55,59,62,64],[43,55,59,62,64]];
 const mtof=m=>440*Math.pow(2,(m-69)/12);
@@ -436,12 +541,14 @@ function pluck(m,vel,when,wet){
   o.connect(lp);o2.connect(g2);g2.connect(lp);lp.connect(g);env(g,t,.006,.22*vel,1.3);out(g,wet);
   o.start(t);o2.start(t);o.stop(t+1.6);o2.stop(t+1.6);
 }
-function bell(m,vel,when){
+function bell(m,vel,when,lite){
   if(!ac)return;vel=vel==null?1:vel;
   const t=ac.currentTime+(when||0),f=mtof(m);
-  [[1,1,2.6],[2.01,.42,1.8],[2.76,.22,1.2],[4.07,.12,.8],[5.4,.07,.5]].forEach(a=>{
+  const bus=ac.createGain();out(bus,.7);
+  const parts=lite?[[1,1,2.6],[2.01,.42,1.8],[2.76,.22,1.2]]:[[1,1,2.6],[2.01,.42,1.8],[2.76,.22,1.2],[4.07,.12,.8],[5.4,.07,.5]];
+  parts.forEach(a=>{
     const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f*a[0];
-    env(g,t,.004,.16*a[1]*vel,a[2]);o.connect(g);out(g,.7);o.start(t);o.stop(t+a[2]+.1);
+    env(g,t,.004,.16*a[1]*vel,a[2]);o.connect(g);g.connect(bus);o.start(t);o.stop(t+a[2]+.1);
   });
 }
 function thump(vel){
@@ -497,20 +604,20 @@ function initAudio(){
   if(ac){if(ac.state==='suspended')ac.resume();return;}
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
   try{
-    ac=new AC();
+    try{ac=new AC({latencyHint:'playback'});}catch(e){ac=new AC();}
     master=ac.createGain();master.gain.value=0;
-    const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=24;comp.ratio.value=3;comp.attack.value=.01;comp.release.value=.25;
+    const comp=ac.createDynamicsCompressor();comp.threshold.value=-20;comp.knee.value=20;comp.ratio.value=8;comp.attack.value=.005;comp.release.value=.25;
     master.connect(comp);comp.connect(ac.destination);
     dryBus=ac.createGain();dryBus.connect(master);
-    const conv=ac.createConvolver();conv.buffer=impulse(3.2,2.6);
+    const conv=ac.createConvolver();conv.buffer=impulse(2.2,2.6);
     revBus=ac.createGain();const revOut=ac.createGain();revOut.gain.value=.55;
     revBus.connect(conv);conv.connect(revOut);revOut.connect(master);
     noiseBuf=makeNoise(2);
-    master.gain.setTargetAtTime(muted?0:.9,ac.currentTime,1.5);
+    master.gain.setTargetAtTime(masterTarget(),ac.currentTime,1.5);
     startAmbient();
   }catch(e){ac=null;}
 }
-function setMuted(m){muted=m;document.getElementById('snd').classList.toggle('off',m);if(ac)master.gain.setTargetAtTime(m?0:.9,ac.currentTime,.3);}
+function setMuted(m){muted=m;document.getElementById('snd').classList.toggle('off',m);if(ac)master.gain.setTargetAtTime(masterTarget(),ac.currentTime,.3);}
 document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend();else ac.resume();});
 
 function sfxLand(d){
@@ -636,7 +743,7 @@ function startRoll(d,undo,bump){
   if(!bump)scrape();
 }
 function tryMove(d){
-  if(state!=='play')return;
+  if(state!=='play'||pageOpen)return;
   if(roll){pending=d;return;}
   const t=tiles.get(key(cube.x+d.x,cube.z+d.z));
   lastMoveT=now;
@@ -644,7 +751,7 @@ function tryMove(d){
   startRoll(d,false,false);
 }
 function undo(){
-  if(state!=='play'||roll||!history.length)return;
+  if(state!=='play'||pageOpen||roll||!history.length)return;
   const h=history.pop();
   if(h.unlocked){
     const t=h.unlocked;t.lit=false;
@@ -658,6 +765,7 @@ function onLand(r){
   const tile=tiles.get(key(cube.x,cube.z));
   addRipple(cube.x,cube.z,.8);
   sfxLand(r.d);
+  emit('land',{x:cube.x,z:cube.z,face:cube.f.down,undo:r.undo});
   if(navigator.vibrate){try{navigator.vibrate(8);}catch(e){}}
   const c=PALN[cube.f.down];
   for(let i=0;i<5;i++){const a=Math.random()*TAU;spawn(cube.x,.05,cube.z,Math.cos(a)*.5,.2,Math.sin(a)*.5,c,.06,.6,0);}
@@ -695,15 +803,15 @@ function finishRoll(){
 }
 
 function levelComplete(){
-  state='trans';pending=null;
-  [0,2,3,4,5,6,7].forEach((si,i)=>{bell(SCALE[si],.8,.35+i*.11);});
+  state='trans';pending=null;emit('complete',{level:level});
+  [0,2,3,4,5,6,7].forEach((si,i)=>{bell(SCALE[si],.8,.35+i*.11,true);});
   pluck(72,.7,.3,.9);
   tiles.forEach(t=>{t.pulseT=now+.25+Math.hypot(t.x-cube.x,t.z-cube.z)*.09;});
   targets.forEach(t=>{sparkBurst(t.x,.3,t.z,PALN[t.target.face],24);});
   later(1700,nextLevel);
 }
 function nextLevel(){
-  level++;toast('SEVİYE '+level);
+  level++;toast('SEVİYE '+level);emit('level',{level:level});
   targets.forEach(t=>{if(t.fx)t.fx.mode='out';t.lit=false;t.target=null;t.fx=null;});
   targets=[];history=[];buildDots();
   growIsland();
@@ -714,6 +822,7 @@ function nextLevel(){
 const KEYS={ArrowUp:'n',w:'n',W:'n',ArrowRight:'e',d:'e',D:'e',ArrowDown:'s',s:'s',S:'s',ArrowLeft:'w',a:'w',A:'w'};
 window.addEventListener('keydown',e=>{
   if(state==='intro'){begin();return;}
+  if(pageOpen){if(e.key==='Escape'){e.preventDefault();closePage();}return;}
   const k=KEYS[e.key];
   if(k){e.preventDefault();tryMove(D[k]);}
   else if(e.key==='z'||e.key==='Z'||e.key==='Backspace'){e.preventDefault();undo();}
@@ -753,10 +862,102 @@ $('undo').addEventListener('pointerdown',e=>{e.preventDefault();undo();});
 $('snd').addEventListener('pointerdown',e=>{e.preventDefault();setMuted(!muted);});
 $('intro').addEventListener('pointerdown',begin);
 
+/* ================= MENÜ / SAYFALAR ================= */
+/* Ana oyun koduna dokunmadan genişletmek için: KUP.on(), KUP.addDevSection(), KUP.store */
+const KL={};
+function emit(ev,a){(KL[ev]||[]).forEach(fn=>{try{fn(a);}catch(e){console.warn('[KUP]',ev,e);}});}
+const DEVP='kup.dev.',devMem={};
+const devStore={
+  get(k,d){const kk=DEVP+k;try{const v=localStorage.getItem(kk);if(v!=null)return JSON.parse(v);}catch(e){}return kk in devMem?devMem[kk]:d;},
+  set(k,v){const kk=DEVP+k;devMem[kk]=v;try{localStorage.setItem(kk,JSON.stringify(v));}catch(e){}},
+  clear(){for(const k in devMem)delete devMem[k];try{Object.keys(localStorage).filter(k=>k.indexOf(DEVP)===0).forEach(k=>localStorage.removeItem(k));}catch(e){}}
+};
+const SAFE=/[?&]safe=1(&|$)/.test(location.search);
+
+function openPage(id){
+  if(state==='intro'||pageOpen)return;
+  const el=$(id);if(!el)return;
+  curPage=el;pageOpen=true;pending=null;
+  el.scrollTop=0;
+  el.classList.add('open');el.setAttribute('aria-hidden','false');
+  document.body.classList.add('paged');
+  if(ac&&!muted)pluck(SCALE[5],.3,0,.6);
+}
+function closePage(){
+  if(!pageOpen||!curPage)return;
+  curPage.classList.remove('open');curPage.setAttribute('aria-hidden','true');
+  document.body.classList.remove('paged');
+  curPage=null;pageOpen=false;lastMoveT=now;
+  if(ac&&!muted)pluck(SCALE[3],.25,0,.6);
+}
+$('btnSet').addEventListener('click',()=>openPage('pgSet'));
+$('btnDev').addEventListener('click',()=>openPage('pgDev'));
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',closePage));
+
+/* ---- ses ayarı ---- */
+const volEl=$('vol'),volVal=$('volVal');
+function paintVol(){const p=Math.round(vol*100);volEl.value=p;volEl.style.setProperty('--p',p+'%');volVal.textContent=p;}
+paintVol();
+volEl.addEventListener('input',()=>{
+  vol=clamp(volEl.value/100,0,1);
+  volEl.style.setProperty('--p',volEl.value+'%');volVal.textContent=volEl.value;
+  if(muted&&vol>0)setMuted(false);
+  else if(ac)master.gain.setTargetAtTime(masterTarget(),ac.currentTime,.04);
+  try{localStorage.setItem('kup.vol',String(vol));}catch(e){}
+});
+volEl.addEventListener('change',()=>{if(ac&&!muted&&vol>0)pluck(SCALE[4],.6,0,.5);});
+
+/* ---- gelişmiş sayfası ---- */
+const devSecs=[];
+function addDevSection(sec){
+  const el=document.createElement('div');el.className='card glass rise';el.style.setProperty('--i',1+devSecs.length);
+  const head=document.createElement('div');head.className='row';
+  const lab=document.createElement('span');lab.className='lab';lab.textContent=String(sec.title||sec.id||'');head.appendChild(lab);
+  const body=document.createElement('div');body.className='sec-body';
+  el.appendChild(head);el.appendChild(body);$('devSections').appendChild(el);
+  try{sec.render(body);}catch(e){console.warn('[KUP] bölüm hatası',e);body.textContent='Bu bölüm yüklenemedi.';}
+  devSecs.push(sec);$('devEmpty').style.display='none';
+  return body;
+}
+(function(){
+  const b=$('devReset'),DEF=b.textContent;let t=0;
+  b.addEventListener('click',()=>{
+    if(!b.classList.contains('armed')&&!b.classList.contains('done')){
+      b.classList.add('armed');b.textContent='Emin misin? Tekrar dokun';
+      t=later(3200,()=>{b.classList.remove('armed');b.textContent=DEF;});return;
+    }
+    if(b.classList.contains('done'))return;
+    clearTimeout(t);
+    devStore.clear();devSecs.forEach(s=>{try{s.onReset&&s.onReset();}catch(e){console.warn('[KUP]',e);}});emit('devreset');
+    b.classList.remove('armed');b.classList.add('done');b.textContent='Sıfırlandı ✓';
+    if(ac&&!muted)pluck(SCALE[6],.35,0,.6);
+    t=later(1800,()=>{b.classList.remove('done');b.textContent=DEF;});
+  });
+  $('safeNote').textContent=SAFE?'Güvenli mod açık: gelişmiş modüller yüklenmedi.':'Bir sorun olursa adres sonuna ?safe=1 ekleyerek oyunu gelişmiş modüller olmadan açabilirsin.';
+})();
+
+window.KUP=Object.freeze({
+  version:'1.1',safe:SAFE,
+  on(ev,fn){(KL[ev]=KL[ev]||[]).push(fn);},
+  off(ev,fn){KL[ev]=(KL[ev]||[]).filter(f=>f!==fn);},
+  store:devStore,addDevSection:addDevSection,toast:toast,
+  getState(){return{level:level,state:state,cube:{x:cube.x,z:cube.z,down:cube.f.down},targets:targets.length,lit:targets.filter(t=>t.lit).length};},
+  audio:{get volume(){return vol;},get muted(){return muted;}}
+});
+
 /* ---- start ---- */
+function goFullscreen(){
+  try{
+    if(!matchMedia('(pointer:coarse)').matches)return;
+    const inst=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+    if(inst||document.fullscreenElement)return;
+    const el=document.documentElement,rq=el.requestFullscreen||el.webkitRequestFullscreen;
+    if(rq){const r=rq.call(el,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{});}
+  }catch(e){}
+}
 function begin(){
   if(state!=='intro')return;
-  state='starting';
+  state='starting';emit('start');goFullscreen();
   initAudio();
   $('intro').classList.add('gone');later(1600,()=>{$('intro').style.display='none';});
   $('ui').classList.add('ready');
@@ -805,7 +1006,7 @@ function frame(ts){
     perfAcc+=gap;perfN++;
     if(perfN>=40){
       const avg=perfAcc/perfN;perfAcc=0;perfN=0;
-      if(avg>21&&now>perfCool&&prMul>.56){prMul*=.85;perfCool=now+2;resize();}
+      if(avg>21&&state!=='trans'&&now>perfCool&&prMul>.72){prMul*=.88;perfCool=now+2;resize();}
     }
   }
 
@@ -855,13 +1056,13 @@ function frame(ts){
   cubeLight.color.lerp(PALN[cube.f.down],1-Math.exp(-dt*4));
 
   /* idle hint flash */
-  if(state==='play'&&now-lastMoveT>22){lastMoveT=now;fxList.forEach(f=>{if(!f.lit)f.nope=.8;});}
+  if(state==='play'&&!pageOpen&&now-lastMoveT>22){lastMoveT=now;fxList.forEach(f=>{if(!f.lit)f.nope=.8;});}
 
   /* camera */
   tgt.set(camGoal.cx*.78+cubeGroup.position.x*.22,0,camGoal.cz*.78+cubeGroup.position.z*.22);
   camT.lerp(tgt,1-Math.exp(-dt*2.4));
   const tn=Math.tan(FOV*Math.PI/360);
-  const goalDist=Math.max(9,Math.max(camGoal.hw/(tn*camera.aspect),camGoal.hh/tn)*1.12);
+  const goalDist=Math.max(9,Math.max(camGoal.hw/(tn*camera.aspect),camGoal.hh/tn)*1.12)*(pageOpen?1.12:1);
   camDist+=(goalDist-camDist)*(1-Math.exp(-dt*1.5));
   const yaw=Math.PI/4+Math.sin(now*.06)*.09,el=(50+Math.sin(now*.05+1)*1.5)*Math.PI/180;
   camera.position.set(camT.x+Math.sin(yaw)*Math.cos(el)*camDist,Math.sin(el)*camDist,camT.z+Math.cos(yaw)*Math.cos(el)*camDist);
@@ -885,6 +1086,37 @@ function frame(ts){
 }
 requestAnimationFrame(frame);
 })();
+</script>
+
+<script id="dev-module">
+/* =====================================================================
+   GELİŞMİŞ (DEVELOPER) MODÜLÜ  —  ana oyundan tamamen ayrı bir script.
+   Burada bir hata olsa bile ana oyun etkilenmez (ayrı <script> + try/catch).
+   Güvenli mod: adrese ?safe=1 ekle -> bu modül hiç çalışmaz.
+
+   Kullanabileceğin yüzey (window.KUP):
+     KUP.on('land'|'level'|'complete'|'start'|'devreset', fn)   olay dinle
+     KUP.store.get(anahtar, varsayılan) / .set(anahtar, değer)  kalıcı dev ayarı
+     KUP.addDevSection({id, title, render(el), onReset()})      Gelişmiş sayfasına bölüm ekle
+     KUP.getState()                                             oyun durumu (salt okunur)
+     KUP.toast('metin')                                         ekranda kısa yazı
+
+   Örnek (şimdilik kapalı):
+     KUP.addDevSection({id:'ornek',title:'ÖRNEK',render(el){el.textContent='Merhaba';}});
+   ===================================================================== */
+(function(){
+  if(!window.KUP||KUP.safe)return;
+  try{
+    /* --- yeni ayarlar ve oyun modları buraya --- */
+  }catch(e){console.warn('[Dev modül hatası]',e);}
+})();
+</script>
+
+<script>
+/* PWA: service worker kaydı */
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('[SW]',e);});});
+}
 </script>
 </body>
 </html>
