@@ -6,14 +6,14 @@
 <meta name="theme-color" content="#050914">
 <title>Küp Adası</title>
 <style>
-:root{--ink:#dfe8ff;--glass:rgba(18,26,52,.55);--edge:rgba(160,185,255,.18)}
+:root{--ink:#dfe8ff;--glass:rgba(18,26,52,.74);--edge:rgba(160,185,255,.18)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;background:#050914;overflow:hidden;font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);overscroll-behavior:none}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #ui{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.6s ease;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 #ui.ready{opacity:1}
 #top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
-.glass{background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.glass{background:var(--glass);border:1px solid var(--edge)}
 #lvl{display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:999px;font-size:14px;letter-spacing:.08em}
 #lvl b{font-weight:600;font-size:16px}
 #dots{display:flex;gap:6px}
@@ -34,8 +34,8 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;touch-acti
 #cur canvas{width:40px;height:40px}
 #toast{position:absolute;left:0;right:0;top:24%;text-align:center;font-size:30px;font-weight:300;letter-spacing:.3em;opacity:0;transition:opacity .9s ease;text-shadow:0 0 24px rgba(130,170,255,.7)}
 #toast.show{opacity:1}
-#intro{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:radial-gradient(circle at 50% 45%,rgba(5,9,20,.35),rgba(5,9,20,.82));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);transition:opacity 1.4s ease;cursor:pointer;z-index:5}
-#intro.gone{opacity:0;pointer-events:none}
+#intro{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:radial-gradient(circle at 50% 45%,rgba(5,9,20,.5),rgba(5,9,20,.88));transition:opacity 1.4s ease;cursor:pointer;z-index:5}
+#intro.gone{opacity:0;pointer-events:none;visibility:hidden;transition:opacity 1.4s ease,visibility 0s 1.4s}
 #intro h1{margin:0;font-weight:200;font-size:clamp(34px,10vw,64px);letter-spacing:.35em;padding-left:.35em;text-shadow:0 0 30px rgba(120,170,255,.6)}
 #intro p{margin:0;font-size:15px;letter-spacing:.14em;color:#aab9e0}
 #intro .go{margin-top:26px;font-size:13px;animation:br 2.6s ease-in-out infinite}
@@ -137,7 +137,17 @@ for(let i=0;i<6;i++){
 /* ================= RENDERER / SCENE ================= */
 const canvas=document.getElementById('gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-const PR=Math.min(window.devicePixelRatio||1,2);
+/* Çözünürlük: ekran büyüdükçe piksel sayısı patlamasın diye toplam piksel bütçesi var.
+   Ayrıca FPS düşerse (aşağıdaki izleyici) çarpan otomatik küçülür. */
+const PX_BUDGET=2.0e6;
+let prMul=1,PR=1;
+function calcPR(){
+  const w=window.innerWidth,h=window.innerHeight;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const bud=Math.sqrt(PX_BUDGET/Math.max(1,w*h));
+  PR=clamp(Math.min(dpr,bud)*prMul,.55,dpr);
+}
+calcPR();
 renderer.setPixelRatio(PR);
 renderer.localClippingEnabled=true;
 renderer.setClearColor(0x050914);
@@ -164,20 +174,25 @@ vec3 skyCol(vec3 d,float t){
   vec3 c=mix(vec3(.075,.12,.25),vec3(.02,.04,.12),smoothstep(0.,.4,h));
   c=mix(c,vec3(.006,.012,.04),smoothstep(.35,1.,h));
   vec3 p=d*75.;vec3 id=floor(p);vec3 f=fract(p)-.5;
-  float r=h13(id);vec3 off=vec3(h13(id+7.1),h13(id+13.7),h13(id+3.3))-.5;
-  float s=smoothstep(.15,.02,length(f-off*.5))*step(.95,r);
-  s*=.55+.45*sin(t*1.7+r*80.);
-  c+=vec3(.8,.88,1.)*s*smoothstep(.03,.3,h);
+  float r=h13(id);
+  if(r>=.95&&h>.03){
+    vec3 off=vec3(h13(id+7.1),h13(id+13.7),h13(id+3.3))-.5;
+    float s=smoothstep(.15,.02,length(f-off*.5));
+    s*=.55+.45*sin(t*1.7+r*80.);
+    c+=vec3(.8,.88,1.)*s*smoothstep(.03,.3,h);
+  }
   vec3 m=normalize(vec3(-.62,.6,-.5));
   float md=dot(d,m);
   c+=vec3(.92,.95,1.)*smoothstep(.9988,.9994,md);
   c+=vec3(.35,.45,.8)*pow(max(md,0.),90.)*.4+vec3(.15,.22,.45)*pow(max(md,0.),10.)*.3;
   float band=smoothstep(.3,.5,h)*smoothstep(.98,.6,h);
-  float ang=atan(d.z,d.x);
-  float w=.5+.5*sin(ang*3.+t*.12+sin(h*7.+t*.17)*1.6);
-  float w2=.5+.5*sin(ang*5.-t*.09+h*4.);
-  vec3 ac=mix(vec3(.1,.85,.6),vec3(.45,.3,.95),w2);
-  c+=ac*band*w*w*.38;
+  if(band>.002){
+    float ang=atan(d.z,d.x);
+    float w=.5+.5*sin(ang*3.+t*.12+sin(h*7.+t*.17)*1.6);
+    float w2=.5+.5*sin(ang*5.-t*.09+h*4.);
+    vec3 ac=mix(vec3(.1,.85,.6),vec3(.45,.3,.95),w2);
+    c+=ac*band*w*w*.38;
+  }
   return c;
 }`;
 const ripArr=[];for(let i=0;i<8;i++)ripArr.push(new THREE.Vector4(0,0,-999,0));
@@ -743,7 +758,7 @@ function begin(){
   if(state!=='intro')return;
   state='starting';
   initAudio();
-  $('intro').classList.add('gone');
+  $('intro').classList.add('gone');later(1600,()=>{$('intro').style.display='none';});
   $('ui').classList.add('ready');
   tiles.forEach(t=>{t.t0=now+.2+Math.hypot(t.x,t.z)*.2;scheduleRiseSound(t);});
   cubeSpawnT=now+1.4;
@@ -759,6 +774,8 @@ const camT=new THREE.Vector3(camGoal.cx,0,camGoal.cz);
 let camDist=16;
 function resize(){
   const w=window.innerWidth,h=window.innerHeight;
+  calcPR();
+  renderer.setPixelRatio(PR);
   renderer.setSize(w,h,false);
   camera.aspect=w/h;
   if(camera.aspect<1)camera.setViewOffset(w,h,0,Math.round(h*.06),w,h);else camera.clearViewOffset();
@@ -774,9 +791,23 @@ const tmpV=new THREE.Vector3(),qq=new THREE.Quaternion(),tgt=new THREE.Vector3()
 
 /* ================= LOOP ================= */
 let last=performance.now();
+let minGap=0,rawPrev=0,rawS=[],perfAcc=0,perfN=0,perfCool=4;
 function frame(ts){
   requestAnimationFrame(frame);
-  const dt=Math.min(.05,(ts-last)/1000);last=ts;now=(ts-T0)/1000;
+  /* ekran yenileme hızını ölç: 90/120Hz ekranda GPU'yu 2 kat yormamak için 60fps'e sınırla */
+  if(rawPrev&&rawS.length<45){const rg=ts-rawPrev;if(rg>2&&rg<60)rawS.push(rg);if(rawS.length===45){rawS.sort((a,b)=>a-b);if(rawS[22]<9.3)minGap=14;}}
+  rawPrev=ts;
+  const gap=ts-last;
+  if(minGap&&gap<minGap)return;
+  const dt=Math.min(.05,gap/1000);last=ts;now=(ts-T0)/1000;
+  /* FPS izleyici: kasarsa çözünürlüğü kademeli düşür */
+  if(now>3&&!document.hidden&&gap<100){
+    perfAcc+=gap;perfN++;
+    if(perfN>=40){
+      const avg=perfAcc/perfN;perfAcc=0;perfN=0;
+      if(avg>21&&now>perfCool&&prMul>.56){prMul*=.85;perfCool=now+2;resize();}
+    }
+  }
 
   tiles.forEach(t=>updateTile(t,dt));
   for(let i=dying.length-1;i>=0;i--){updateTile(dying[i],dt);if(dying[i].dead){destroyTile(dying[i]);dying.splice(i,1);}}
