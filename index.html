@@ -251,7 +251,7 @@ const PX_BUDGET=3.6e6;
 let prMul=1,PR=1;
 function calcPR(){
   const w=window.innerWidth,h=window.innerHeight;
-  const dpr=Math.min(window.devicePixelRatio||1,2.5);
+  const dpr=Math.min(window.devicePixelRatio||1,3);
   const bud=Math.sqrt(PX_BUDGET/Math.max(1,w*h));
   PR=clamp(Math.min(dpr,bud)*prMul,.7,dpr);
 }
@@ -1030,7 +1030,7 @@ const tmpV=new THREE.Vector3(),qq=new THREE.Quaternion(),tgt=new THREE.Vector3()
 
 /* ================= LOOP ================= */
 let last=performance.now();
-let minGap=0,rawPrev=0,rawS=[],perfAcc=0,perfN=0,perfCool=4;
+let minGap=0,rawPrev=0,rawS=[],perfAcc=0,perfN=0,perfCool=4,prMax=1,raiseT=-99;
 function frame(ts){
   requestAnimationFrame(frame);
   /* ekran yenileme hızını ölç: 90/120Hz ekranda GPU'yu 2 kat yormamak için 60fps'e sınırla */
@@ -1044,7 +1044,14 @@ function frame(ts){
     perfAcc+=gap;perfN++;
     if(perfN>=40){
       const avg=perfAcc/perfN;perfAcc=0;perfN=0;
-      if(avg>21&&state!=='trans'&&now>perfCool&&prMul>.72){prMul*=.88;perfCool=now+2;resize();}
+      if(avg>21&&state!=='trans'&&now>perfCool&&prMul>.72){
+        prMul*=.88;
+        if(now-raiseT<10)prMax=prMul; /* yükseltme kasma yaptıysa o seviyeyi tavan yap, salınım olmasın */
+        perfCool=now+2;resize();
+      }else if(avg<18&&state!=='trans'&&now>perfCool&&prMul<prMax-.001){
+        /* kare hızı rahatsa çözünürlüğü yavaşça geri yükselt */
+        prMul=Math.min(prMax,prMul/.88);raiseT=now;perfCool=now+10;resize();
+      }
     }
   }
 
