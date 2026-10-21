@@ -3,7 +3,7 @@
    - index.html: önce ağ, olmazsa önbellek (güncellemeler hemen gelir).
    - three.js / ikonlar: önce önbellek.
    Yeni sürüm yayınlarken yalnızca VERSION'u değiştirmen yeterli. */
-const VERSION='kup-v6';
+const VERSION='kup-v7';
 const THREE_URL='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 const SHELL=['./','./index.html','./manifest.json','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png','./icons/favicon-48.png'];
 
