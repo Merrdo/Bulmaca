@@ -226,7 +226,10 @@ function drawSym(g,id,cx,cy,r,mode,glow){
   const col=PAL[id];
   if(glow){g.shadowColor=col;g.shadowBlur=glow;}
   symPath(g,id,cx,cy,r);
-  if(mode==='fill'){
+  if(mode==='cube'||mode==='flat'){
+    /* küp yüzü: düz, geometrik, beyaz katman yok */
+    g.fillStyle=col;g.fill();g.strokeStyle=col;g.lineWidth=r*.16;g.stroke();
+  }else if(mode==='fill'){
     g.fillStyle=col;g.fill();g.strokeStyle=col;g.lineWidth=r*.24;g.stroke();
     g.shadowBlur=0;g.globalAlpha=.28;g.fillStyle='#fff';symPath(g,id,cx,cy,r*.5);g.fill();
   }else{
@@ -247,7 +250,7 @@ function mkCanvas(n){const c=document.createElement('canvas');c.width=c.height=n
 function mkHi(){const c=mkCanvas(512);c.getContext('2d').scale(2,2);return c;} /* 256 birimlik çizim, 512 piksel doku */
 function hexA(h,a){const c=new THREE.Color(h);return 'rgba('+((c.r*255)|0)+','+((c.g*255)|0)+','+((c.b*255)|0)+','+a+')';}
 
-const TEX={face:[],faceGlow:[],out:[],fill:[],lit:[],rim:null,glow:null,soft:null};
+const TEX={face:[],faceGlow:[],out:[],fill:[],lit:[],rim:null,glow:null,soft:null,foam:null};
 for(let i=0;i<6;i++){
   let c=mkHi(),g=c.getContext('2d');
   const gr=g.createLinearGradient(0,0,256,256);gr.addColorStop(0,'#1f2d55');gr.addColorStop(1,'#131b36');
@@ -255,9 +258,9 @@ for(let i=0;i<6;i++){
   const rg=g.createRadialGradient(128,128,8,128,128,150);rg.addColorStop(0,hexA(PAL[i],.3));rg.addColorStop(1,'rgba(0,0,0,0)');
   g.fillStyle=rg;g.fillRect(0,0,256,256);
   g.strokeStyle='rgba(185,205,255,.28)';g.lineWidth=12;g.strokeRect(6,6,244,244);
-  drawSym(g,i,128,128,60,'fill',0);
+  drawSym(g,i,128,128,60,'cube',0);
   TEX.face.push(new THREE.CanvasTexture(c));
-  c=mkHi();g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,256,256);drawSym(g,i,128,128,60,'fill',0);
+  c=mkHi();g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,256,256);drawSym(g,i,128,128,60,'flat',0);
   TEX.faceGlow.push(new THREE.CanvasTexture(c));
   c=mkHi();g=c.getContext('2d');drawSym(g,i,128,128,70,'line',52);
   TEX.out.push(new THREE.CanvasTexture(c));
@@ -271,6 +274,12 @@ for(let i=0;i<6;i++){
   let rg=g.createRadialGradient(64,64,0,64,64,64);rg.addColorStop(0,'rgba(255,255,255,.9)');rg.addColorStop(.35,'rgba(255,255,255,.3)');rg.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle=rg;g.fillRect(0,0,128,128);TEX.glow=new THREE.CanvasTexture(c);
   c=mkCanvas(256);g=c.getContext('2d');g.strokeStyle='#fff';g.lineWidth=7;g.shadowColor='#fff';g.shadowBlur=12;g.strokeRect(14,14,228,228);TEX.rim=new THREE.CanvasTexture(c);
+  /* su hattı köpük halkası (yumuşak, ince) */
+  c=mkCanvas(128);g=c.getContext('2d');
+  g.strokeStyle='rgba(190,225,255,1)';g.lineWidth=3.5;g.shadowColor='rgba(150,205,255,1)';g.shadowBlur=9;
+  g.beginPath();g.roundRect?g.roundRect(15,15,98,98,9):g.rect(15,15,98,98);g.stroke();
+  g.shadowBlur=0;g.globalAlpha=.35;g.lineWidth=1.2;g.beginPath();g.roundRect?g.roundRect(10,10,108,108,12):g.rect(10,10,108,108);g.stroke();
+  TEX.foam=new THREE.CanvasTexture(c);
   c=mkCanvas(128);g=c.getContext('2d');rg=g.createRadialGradient(64,64,0,64,64,64);rg.addColorStop(0,'rgba(255,255,255,.5)');rg.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle=rg;g.fillRect(0,0,128,128);TEX.soft=new THREE.CanvasTexture(c);
 })();
@@ -303,7 +312,7 @@ const mirrorPlane=new THREE.Plane(new THREE.Vector3(0,-1,0),WATER_Y);
 const hemi=new THREE.HemisphereLight(0x7f9bff,0x101a3a,.85);scene.add(hemi);
 const moon=new THREE.DirectionalLight(0xbcd0ff,.85);moon.position.set(-12,12,-10);scene.add(moon);
 const fill=new THREE.DirectionalLight(0x4466aa,.35);fill.position.set(8,5,9);scene.add(fill);
-const cubeLight=new THREE.PointLight(0xffffff,1.3,7,2);scene.add(cubeLight);
+const cubeLight=new THREE.PointLight(0xffffff,.9,6,2);scene.add(cubeLight);
 
 const tilesRoot=new THREE.Group();scene.add(tilesRoot);
 const mirrorRoot=new THREE.Group();mirrorRoot.scale.y=-1;mirrorRoot.position.y=2*WATER_Y;scene.add(mirrorRoot);
@@ -511,6 +520,14 @@ let targets=[];
 
 function easeOutBack(u){const c1=1.3,c3=c1+1;return 1+c3*Math.pow(u-1,3)+c1*Math.pow(u-1,2);}
 
+const foamRoot=new THREE.Group();scene.add(foamRoot);
+const foamGeo=new THREE.PlaneGeometry(1.3,1.3).rotateX(-HALF),subGeo=new THREE.PlaneGeometry(2.4,2.4).rotateX(-HALF);
+const FOAM_Y=WATER_Y+.004,SUB_Y=WATER_Y-.28;
+function dipOf(tile){ /* küp karonun üstündeyken karo hafifçe suya batar */
+  if(!cubeGroup.visible)return 0;
+  const d=Math.hypot(cubeGroup.position.x-tile.x,cubeGroup.position.z-tile.z);
+  return Math.max(0,1-d/.95);
+}
 function createTile(x,z,t0){
   const tile={x,z,key:key(x,z),y:-3,state:'rise',t0:t0,tS:0,lit:false,litv:0,litCol:new THREE.Color(),pulseT:-9,target:null,fx:null,phase:Math.random()*TAU};
   tile.dh=(Math.random()-.5)*.03;tile.dl=(Math.random()-.5)*.03;const topC=new THREE.Color().copy(LOOK.top).offsetHSL(tile.dh,0,tile.dl);
@@ -522,6 +539,12 @@ function createTile(x,z,t0){
   tile.box.userData.tile=tile;
   tile.root.add(tile.box);tile.mir.add(tile.boxM);
   tile.root.position.set(x,-3,z);tile.mir.position.set(x,-3,z);
+  tile.foamM=new THREE.MeshBasicMaterial({map:TEX.foam,color:0xcfe8ff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0,fog:false});
+  tile.foam=new THREE.Mesh(foamGeo,tile.foamM);tile.foam.position.set(x,FOAM_Y,z);tile.foam.renderOrder=2;tile.foam.visible=false;
+  tile.subM=new THREE.MeshBasicMaterial({map:TEX.glow,color:0x2f6bff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:0,fog:false});
+  tile.sub=new THREE.Mesh(subGeo,tile.subM);tile.sub.position.set(x,SUB_Y,z);tile.sub.renderOrder=0;tile.sub.visible=false;
+  tile.dip=0;tile.rippled=false;
+  foamRoot.add(tile.foam);foamRoot.add(tile.sub);
   tile.root.visible=false;tile.mir.visible=false;
   tilesRoot.add(tile.root);mirrorRoot.add(tile.mir);
   tiles.set(tile.key,tile);
@@ -529,6 +552,7 @@ function createTile(x,z,t0){
 }
 function destroyTile(tile){
   tilesRoot.remove(tile.root);mirrorRoot.remove(tile.mir);
+  foamRoot.remove(tile.foam);foamRoot.remove(tile.sub);tile.foamM.dispose();tile.subM.dispose();
   tile.topM.dispose();tile.topMm.dispose();
 }
 const _c=new THREE.Color();
@@ -536,20 +560,28 @@ function updateTile(tile,dt){
   let y=0;
   if(tile.state==='rise'){
     const u=(now-tile.t0)/.95;
-    if(u<0){tile.root.visible=tile.mir.visible=false;return;}
+    if(u<0){tile.root.visible=tile.mir.visible=false;tile.foam.visible=tile.sub.visible=false;return;}
     tile.root.visible=tile.mir.visible=true;
-    if(u>=1){tile.state='idle';}
+    if(u>=1){tile.state='idle';if(!tile.rippled){tile.rippled=true;if(((tile.x+tile.z)&1)===0)addRipple(tile.x,tile.z,.3);}}
     else y=-2.2+2.2*easeOutBack(u);
   }else if(tile.state==='sink'){
     const u=(now-tile.tS)/.85;
     y=-2.4*u*u*u;
     if(u>=1){tile.dead=true;return;}
   }
-  const bob=Math.sin(now*.9+tile.phase)*.022;
+  tile.dip+=((dipOf(tile)*.04)-tile.dip)*(1-Math.exp(-dt*6));
+  const bob=Math.sin(now*.9+tile.phase)*.034-tile.dip;
   const pt=now-tile.pulseT;
   const pv=(pt>=0&&pt<1.1)?Math.sin(pt/1.1*Math.PI)*Math.exp(-pt*1.2):0;
   y+=bob+pv*.14;
   tile.root.position.y=y;tile.mir.position.y=y;
+  /* su hattı: karo su seviyesine çıktıkça köpük halkası ve alt ışıma belirir */
+  const wv=Math.min(1,Math.max(0,(y-WATER_Y+.55)/.5));
+  const sh=.72+.28*Math.sin(now*1.7+tile.phase*2.3);
+  tile.foam.visible=tile.sub.visible=wv>.01;
+  tile.foamM.opacity=.62*wv*sh*(1+tile.dip*8);
+  const fs=1+.02*Math.sin(now*1.1+tile.phase)+tile.dip*1.2;tile.foam.scale.set(fs,1,fs);
+  tile.subM.opacity=.5*wv*(.8+.2*Math.sin(now*.8+tile.phase));
   tile.litv+=((tile.lit?1:0)-tile.litv)*(1-Math.exp(-dt*5));
   _c.copy(tile.litCol).multiplyScalar(tile.litv*.03+pv*.35);
   tile.topM.emissive.copy(_c);tile.topMm.emissive.copy(_c);
@@ -590,7 +622,7 @@ function updateFx(dt){
 const cubeGeo=new THREE.BoxGeometry(S,S,S);
 const cubeMats=[],cubeMatsM=[];
 for(let i=0;i<6;i++){
-  const m=new THREE.MeshStandardMaterial({map:TEX.face[i],emissiveMap:TEX.faceGlow[i],emissive:0xffffff,emissiveIntensity:.55,roughness:.4,metalness:.15});
+  const m=new THREE.MeshStandardMaterial({map:TEX.face[i],emissiveMap:TEX.faceGlow[i],emissive:0xffffff,emissiveIntensity:.5,roughness:.75,metalness:0});
   cubeMats.push(m);const mm=m.clone();mm.clippingPlanes=[mirrorPlane];cubeMatsM.push(mm);
 }
 const cubeMesh=new THREE.Mesh(cubeGeo,cubeMats),cubeMeshM=new THREE.Mesh(cubeGeo,cubeMatsM);
@@ -717,7 +749,27 @@ function initAudio(){
   }catch(e){ac=null;}
 }
 function setMuted(m){muted=m;document.getElementById('snd').classList.toggle('off',m);if(ac)master.gain.setTargetAtTime(masterTarget(),ac.currentTime,.3);}
-document.addEventListener('visibilitychange',()=>{if(!ac)return;if(document.hidden)ac.suspend();else ac.resume();});
+let audioWasOn=false;
+function audioHush(){
+  if(!ac)return;
+  try{master.gain.cancelScheduledValues(ac.currentTime);master.gain.setValueAtTime(0,ac.currentTime);}catch(e){}
+  audioWasOn=ac.state==='running';
+  try{ac.suspend();}catch(e){}
+}
+function audioWake(){
+  if(!ac)return;
+  try{ac.resume();master.gain.setTargetAtTime(masterTarget(),ac.currentTime,.6);}catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)audioHush();else audioWake();});
+window.addEventListener('pagehide',e=>{
+  if(!ac)return;
+  if(e.persisted){audioHush();return;}
+  try{master.gain.value=0;ac.close();}catch(e2){}
+  ac=null;master=null;dryBus=null;revBus=null;padOsc=[];
+});
+window.addEventListener('pageshow',e=>{if(e.persisted)audioWake();});
+document.addEventListener('freeze',audioHush);
+document.addEventListener('resume',audioWake);
 
 function sfxLand(d){
   if(!ac)return;
@@ -769,15 +821,29 @@ function connectedWithout(removed){
   }
   return seen.size===tiles.size-removed.size;
 }
+const holeSet=new Set(); /* serbest mod: bilerek boş bırakılan hücreler (görsel çeşitlilik, oynanışı bozmaz) */
 function addTiles(n,soundMax){
   for(let i=0;i<n;i++){
     const cand=new Map();
     tiles.forEach(t=>{DIRS.forEach(d=>{const x=t.x+d.x,z=t.z+d.z,k=key(x,z);if(!tiles.has(k)&&!cand.has(k))cand.set(k,[x,z]);});});
-    let best=null,bs=-1;
-    cand.forEach(v=>{
+    /* uzaktaki eski boşlukları unut */
+    holeSet.forEach(k=>{if(tiles.has(k)){holeSet.delete(k);return;}const p=k.split(',');if(Math.hypot(+p[0]-cube.x,+p[1]-cube.z)>14)holeSet.delete(k);});
+    const maxHoles=Math.max(3,Math.floor(tiles.size*.3));
+    const scored=[];
+    cand.forEach((v,k)=>{
+      if(holeSet.has(k))return;
       let c=0;DIRS.forEach(d=>{if(tiles.has(key(v[0]+d.x,v[1]+d.z)))c++;});
-      const sc=c+Math.random()*1.5;if(sc>bs){bs=sc;best=v;}
+      scored.push({v:v,k:k,c:c,sc:c+Math.random()*1.8});
     });
+    scored.sort((a,b)=>b.sc-a.sc);
+    let best=null;
+    for(const o of scored){
+      /* kuşatılmış cep ya da girinti: bazen doldurma, boşluk olarak bırak */
+      const pHole=o.c>=3?.65:(o.c===2?.22:0);
+      if(pHole&&holeSet.size<maxHoles&&scored.length>1&&Math.random()<pHole){holeSet.add(o.k);continue;}
+      best=o.v;break;
+    }
+    if(!best&&scored.length)best=scored[0].v;
     if(best){const t=createTile(best[0],best[1],now+.15+Math.min(i,40)*.13);if(i<soundMax)scheduleRiseSound(t);}
   }
 }
@@ -819,33 +885,63 @@ function devLimits(){pruneIsland();computeBounds();}
 let gameMode='free',puzzleHead=D.n;
 function setGameMode(m){gameMode=(m==='puzzle')?'puzzle':'free';}
 const rndI=(a,b)=>a+((Math.random()*(b-a+1))|0);
-function genLayout(L){
-  const T=new Map();const add=(u,v)=>T.set(u+','+v,[u,v]);
-  const rooms=Math.min(2+(((L-1)/3)|0),4);
-  let u=0,v=0;const rl=[];
-  for(let r=0;r<rooms;r++){
-    const rw=rndI(2,3),len=rndI(2,3),v0=v-rndI(0,rw-1);
-    for(let a=0;a<len;a++)for(let c=0;c<rw;c++)add(u+a,v0+c);
-    rl.push({u0:u,u1:u+len-1,v0:v0,v1:v0+rw-1});
-    if(r===rooms-1)break;
-    const eu=u+len-1,ev=rndI(v0,v0+rw-1),cl=rndI(1,3);
-    for(let a=1;a<=cl;a++)add(eu+a,ev);
-    let cu=eu+cl,cv=ev;
-    if(Math.random()<.6){
-      const m=rndI(1,3)*(Math.random()<.5?-1:1),st=Math.sign(m);
-      for(let c=1;c<=Math.abs(m);c++)add(cu,cv+st*c);
-      cv+=m;
-    }
-    u=cu+1;v=cv;
-  }
-  /* çıkmaz kollar */
-  rl.forEach(r=>{
-    if(Math.random()<.55){
-      const side=Math.random()<.5?-1:1,a=rndI(r.u0,r.u1),len=rndI(1,2),base=side<0?r.v0:r.v1;
-      for(let c=1;c<=len;c++)add(a,base+side*c);
-    }
+function layoutStats(cells){
+  /* bağlantı ve kalite ölçüleri: kavşak, döngü, çıkmaz uç, en uzun tek şeritli koridor, 2x2 manevra odası */
+  const set=new Set(cells.map(c=>c[0]+','+c[1]));let E=0,junc=0,dead=0,blocks=0;
+  const deg=new Map(),O=[[1,0],[-1,0],[0,1],[0,-1]];
+  cells.forEach(c=>{
+    let d=0;O.forEach(o=>{if(set.has((c[0]+o[0])+','+(c[1]+o[1])))d++;});
+    deg.set(c[0]+','+c[1],d);
+    if(set.has((c[0]+1)+','+c[1]))E++;if(set.has(c[0]+','+(c[1]+1)))E++;
+    if(d>=3)junc++;if(d===1)dead++;
+    if(set.has((c[0]+1)+','+c[1])&&set.has(c[0]+','+(c[1]+1))&&set.has((c[0]+1)+','+(c[1]+1)))blocks++;
   });
-  return [...T.values()];
+  let chain=0;const seen=new Set();
+  cells.forEach(c=>{
+    const k=c[0]+','+c[1];if(deg.get(k)!==2||seen.has(k))return;
+    let n=0;const q=[c];seen.add(k);
+    while(q.length){const v=q.pop();n++;O.forEach(o=>{const x=v[0]+o[0],y=v[1]+o[1],kk=x+','+y;if(deg.get(kk)===2&&!seen.has(kk)){seen.add(kk);q.push([x,y]);}});}
+    chain=Math.max(chain,n);
+  });
+  return{V:cells.length,E:E,cyc:E-cells.length+1,junc:junc,dead:dead,blocks:blocks,chain:chain};
+}
+function genLayout(L){
+  /* örümcek ağı: halka + içeride boşluklar + kavşaklar + 2x2 manevra odaları. Uzun tek şeritli koridor YOK:
+     her zeminde gerçek seçenekler (kavşaklar, döngüler) var. Seviye ilerledikçe alan ve dallanma yavaşça büyür. */
+  const T=Math.min(30,12+Math.round(L*.45));
+  let w,h; /* ızgara karoların ~%60'ı kadar dolu: boşluklar kalır */
+  if(T<=12){w=5;h=4;}else if(T<=16){w=5;h=5;}else if(T<=20){w=6;h=5;}else if(T<=25){w=6;h=6;}else if(T<=30){w=7;h=6;}else{w=7;h=7;}
+  if(Math.random()<.5){const t=w;w=h;h=t;}
+  const cycMin=L<10?1:(L<25?2:3),chainMax=L<20?2:3,blocksMin=L<12?1:2,juncFrac=L<12?.28:.25;
+  const keyc=(a,c)=>a+','+c;
+  let best=null,bestPen=1e9;
+  for(let attempt=0;attempt<40;attempt++){
+    const sx=rndI(0,w-1),sy=rndI(0,h-1),startK=keyc(sx,sy);
+    const cells=new Map();
+    for(let a=0;a<w;a++)for(let c=0;c<h;c++)cells.set(keyc(a,c),[a,c]);
+    const interior=(a,c)=>a>0&&c>0&&a<w-1&&c<h-1;
+    const order=[...cells.values()].filter(v=>keyc(v[0],v[1])!==startK)
+      .map(v=>({v:v,r:Math.random()+(interior(v[0],v[1])?0:.55)})).sort((a,b)=>a.r-b.r).map(o=>o.v);
+    const ok=()=>{
+      const seen=new Set([startK]),q=[cells.get(startK)];
+      while(q.length){const v=q.pop();[[1,0],[-1,0],[0,1],[0,-1]].forEach(o=>{const k=keyc(v[0]+o[0],v[1]+o[1]);if(cells.has(k)&&!seen.has(k)){seen.add(k);q.push(cells.get(k));}});}
+      if(seen.size!==cells.size)return false;
+      const st=layoutStats([...cells.values()]);
+      return st.cyc>=cycMin&&st.chain<=chainMax&&st.blocks>=blocksMin&&st.junc>=Math.ceil(st.V*juncFrac);
+    };
+    for(const v of order){
+      if(cells.size<=T)break;
+      const k=keyc(v[0],v[1]),old=cells.get(k);cells.delete(k);
+      if(!ok())cells.set(k,old);
+    }
+    const list=[...cells.values()].map(v=>[v[0]-sx,v[1]-sy]);
+    const st=layoutStats(list);
+    const good=st.cyc>=cycMin&&st.chain<=chainMax&&st.blocks>=blocksMin&&st.junc>=Math.ceil(st.V*juncFrac);
+    const pen=(good?0:50)+Math.max(0,st.dead-4)+Math.abs(st.V-T)*.5;
+    if(pen<bestPen){bestPen=pen;best=list;}
+    if(pen<=2)break;
+  }
+  return best;
 }
 function buildPuzzleArea(){
   const start=tiles.get(key(cube.x,cube.z));
@@ -889,6 +985,9 @@ function solveLen(nodes,idx,nb,tg,oc){
   }
   return -1;
 }
+/* zorluk eğrisi: seviye 5 ile seviye 40 arasında belirgin fark, her seviyede çok küçük artış */
+function puzzleN(L){return L<4?1:L<10?2:L<18?3:L<28?4:L<41?5:6;}
+function puzzleWant(L,n){const s=Math.min(1,(L-1)/45);return Math.round(2.5+n*(2.8+3.2*s)+L*.15);}
 function genTargetsPuzzle(n){
   const nodes=[...tiles.values()].filter(t=>t.state!=='sink');
   const idx=new Map(nodes.map((t,i)=>[t.key,i]));
@@ -897,23 +996,45 @@ function genTargetsPuzzle(n){
   const oc={list:list,
     id(f){const k=f.down*6+f.n;let i=oMap.get(k);if(i===undefined){i=list.length;oMap.set(k,i);list.push(f);nx.push([-1,-1,-1,-1]);}return i;},
     next(o,di){const a=nx[o];if(a[di]<0)a[di]=oc.id(rollState(list[o],DIRS[di]));return a[di];}};
-  const F=puzzleHead,uOf=t=>(t.x-cube.x)*F.x+(t.z-cube.z)*F.z;
-  const cand=nodes.filter(t=>!(t.x===cube.x&&t.z===cube.z));
-  if(!cand.length)return [];
-  n=Math.min(n,cand.length,6);
-  cand.sort((a,b)=>uOf(b)-uOf(a));
-  const far=cand.slice(0,Math.max(1,Math.ceil(cand.length*.25)));
-  let best=null,bl=-1;
-  for(let a=0;a<40;a++){
-    const pick=[far[(Math.random()*far.length)|0]];
-    const rest=cand.filter(t=>t!==pick[0]);
-    while(pick.length<n&&rest.length){pick.push(rest.splice((Math.random()*rest.length)|0,1)[0]);}
+  const N=nodes.length,startI=idx.get(key(cube.x,cube.z));
+  /* karo grafiği mesafeleri */
+  const gd=nodes.map((_,s0)=>{const d=new Int16Array(N).fill(-1);d[s0]=0;const q=[s0];for(let h=0;h<q.length;h++){const u=q[h];nb[u].forEach(v=>{if(v>=0&&d[v]<0){d[v]=d[u]+1;q.push(v);}});}return d;});
+  const candI=[];for(let i=0;i<N;i++)if(i!==startI)candI.push(i);
+  if(!candI.length)return [];
+  n=Math.min(n,candI.length,6);
+  const want=puzzleWant(level,n),tol=Math.max(2,Math.round(want*.12));
+  const minEx=n===1?1:Math.max(1,Math.round(n*.7));
+  /* en kısa tur (karo mesafesi): hedefler arası düz gidişin alt sınırı */
+  const tour=(pick)=>{
+    let best=1e9;const used=new Array(pick.length).fill(false);
+    (function rec(cur,cnt,sum){
+      if(sum>=best)return;
+      if(cnt===pick.length){best=sum;return;}
+      for(let i=0;i<pick.length;i++)if(!used[i]){used[i]=true;rec(pick[i],cnt+1,sum+gd[cur][pick[i]]);used[i]=false;}
+    })(startI,0,0);
+    return best;
+  };
+  let best=null,bs=1e9;const t0=performance.now();
+  for(let a=0;a<300&&(a<40||performance.now()-t0<180);a++){
+    const sepS=a>150?2:3,sepP=(a>150||Math.random()<.2)?2:3;
+    const exNeed=Math.max(0,minEx-(a>100?1:0)-(a>200?1:0));
+    let pool=candI.filter(i=>gd[startI][i]>=sepS);
+    const pick=[];
+    while(pick.length<n&&pool.length){
+      const c=pool.splice((Math.random()*pool.length)|0,1)[0];
+      if(pick.every(p=>gd[p][c]>=sepP))pick.push(c);
+    }
+    if(pick.length<n)continue;
     const faces=[0,1,2,3,4,5].sort(()=>Math.random()-.5);
-    const tg=pick.map((t,i)=>({i:idx.get(t.key),face:faces[i],x:t.x,z:t.z}));
+    const tg=pick.map((q,i)=>({i:q,face:faces[i],x:nodes[q].x,z:nodes[q].z}));
     const L=solveLen(nodes,idx,nb,tg,oc);
-    if(L>bl){bl=L;best=tg;}
+    if(L<0)continue;
+    const ex=L-tour(pick);
+    const pen=ex<exNeed?(exNeed-ex)*10:0,sc=Math.abs(L-want)+pen;
+    if(sc<bs){bs=sc;best=tg;}
+    if(pen===0&&Math.abs(L-want)<=tol)break;
   }
-  return bl<0?[]:best.map(q=>({x:q.x,z:q.z,face:q.face}));
+  return best?best.map(q=>({x:q.x,z:q.z,face:q.face})):[];
 }
 function devSkipLevel(){
   if(state!=='play'||roll)return false;
@@ -929,7 +1050,7 @@ function scheduleRiseSound(tile){
 function genTargets(n){
   let s={x:cube.x,z:cube.z,f:cube.f};
   const res=[],used=new Set([key(s.x,s.z)]);
-  const minSteps=2+(level>2?1:0)+(level>5?1:0);
+  const minSteps=2;
   let steps=0,guard=0;
   while(res.length<n&&guard++<600){
     const opts=DIRS.filter(d=>{const t=tiles.get(key(s.x+d.x,s.z+d.z));return t&&t.state!=='sink';});
@@ -946,7 +1067,7 @@ function genTargets(n){
   return res;
 }
 function placeTargets(){
-  const n=gameMode==='puzzle'?Math.min(6,2+(((level-1)/2)|0),tiles.size-1):Math.min(7,1+Math.floor((level-1)*.6+.4),tiles.size-1);
+  const n=gameMode==='puzzle'?Math.min(puzzleN(level),tiles.size-1):Math.min(4,1+Math.floor(level/3),tiles.size-1);
   targets=[];
   let gt=gameMode==='puzzle'?genTargetsPuzzle(n):[];
   if(!gt.length)gt=genTargets(n);
@@ -1478,7 +1599,7 @@ function frame(ts){
   cubeGroupM.position.copy(cubeGroup.position);cubeGroupM.scale.copy(cubeGroup.scale);cubeMeshM.quaternion.copy(cubeMesh.quaternion);
 
   /* light */
-  cubeLight.position.set(cubeGroup.position.x,cubeGroup.position.y+1.1,cubeGroup.position.z);
+  cubeLight.position.set(cubeGroup.position.x,cubeGroup.position.y-.15,cubeGroup.position.z); /* ışık küpün altında: üst yüzey patlamaz, çevre karolar yine aydınlanır */
   cubeLight.color.lerp(PALN[cube.f.down],1-Math.exp(-dt*4));
 
   /* idle hint flash */
