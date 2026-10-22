@@ -63,6 +63,7 @@ canvas#gl{position:fixed;left:0;top:0;width:100%;height:100%;height:var(--app-h,
 #cur canvas{width:40px;height:40px}
 #toast{position:absolute;left:0;right:0;top:24%;text-align:center;font-size:30px;font-weight:300;letter-spacing:.3em;opacity:0;transition:opacity .9s ease;text-shadow:0 0 24px rgba(130,170,255,.7)}
 #toast.show{opacity:1}
+#toast small{display:block;margin-top:12px;font-size:13px;letter-spacing:.45em;padding-left:.45em;opacity:.75}
 #intro{position:fixed;left:0;top:0;width:100%;height:100%;height:var(--app-h,100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:radial-gradient(circle at 50% 45%,rgba(5,9,20,.5),rgba(5,9,20,.88));transition:opacity 1.4s ease;cursor:pointer;z-index:5}
 #intro.gone{opacity:0;pointer-events:none;visibility:hidden;transition:opacity 1.4s ease,visibility 0s 1.4s}
 #intro h1{margin:0;font-weight:200;font-size:clamp(34px,10vw,64px);letter-spacing:.35em;padding-left:.35em;text-shadow:0 0 30px rgba(120,170,255,.6)}
@@ -299,7 +300,7 @@ const camera=new THREE.PerspectiveCamera(FOV,1,.5,900);
 const WATER_Y=-0.4;
 const mirrorPlane=new THREE.Plane(new THREE.Vector3(0,-1,0),WATER_Y);
 
-scene.add(new THREE.HemisphereLight(0x7f9bff,0x101a3a,.85));
+const hemi=new THREE.HemisphereLight(0x7f9bff,0x101a3a,.85);scene.add(hemi);
 const moon=new THREE.DirectionalLight(0xbcd0ff,.85);moon.position.set(-12,12,-10);scene.add(moon);
 const fill=new THREE.DirectionalLight(0x4466aa,.35);fill.position.set(8,5,9);scene.add(fill);
 const cubeLight=new THREE.PointLight(0xffffff,1.3,7,2);scene.add(cubeLight);
@@ -307,63 +308,116 @@ const cubeLight=new THREE.PointLight(0xffffff,1.3,7,2);scene.add(cubeLight);
 const tilesRoot=new THREE.Group();scene.add(tilesRoot);
 const mirrorRoot=new THREE.Group();mirrorRoot.scale.y=-1;mirrorRoot.position.y=2*WATER_Y;scene.add(mirrorRoot);
 
+/* ================= BÖLGELER (seviyeye göre değişen görünüm + ses) =================
+   Her REALM_LEN seviyede yeni bir bölge; bölge içinde seviye ilerledikçe yoğunluk (t: 0..1) hafifçe artar.
+   LOOK = ekranda o an görünen değerler, LTGT = hedef. Her kare LOOK hedefe doğru akar (yumuşak geçiş). */
+const REALM_LEN=4;
+const REALMS=[
+ {name:'GECE GÖLÜ',sky:[0x131f40,0x050a1f,0x02030a],star:.95,starC:0xcce0ff,aur:[0x1ad999,0x734df2],aurK:1,moon:0xebf2ff,deep:0x030913,far:0x080f21,fog:0x0a1330,fogD:.016,clear:0x050914,hemi:[0x7f9bff,0x101a3a],moonL:0xbcd0ff,fillL:0x4466aa,top:[.62,.38,.30],side:[.62,.35,.17],ff:[0xbfff73,0x80e6ff],
+  aud:{root:60,degs:[0,2,4,7,9],ch:[[45,57,60,64,67],[41,53,57,60,64],[48,55,59,62,64],[43,55,59,62,64]],cut:800,windG:.035,windF:380,chime:[5000,7000],chordMs:13000}},
+ {name:'MENEKŞE GECESİ',sky:[0x2a1650,0x120a30,0x06030f],star:.94,starC:0xe8d8ff,aur:[0xff5fd0,0x6a7bff],aurK:1.2,moon:0xffe9ff,deep:0x0a0414,far:0x140a2a,fog:0x170c33,fogD:.017,clear:0x07030f,hemi:[0xb08cff,0x1a0f3a],moonL:0xe0c8ff,fillL:0x7a4aaa,top:[.74,.36,.30],side:[.74,.33,.17],ff:[0xffa0f0,0xa0b0ff],
+  aud:{root:62,degs:[0,2,4,7,9],ch:[[38,50,54,61,64],[35,50,54,57,62],[43,50,54,59,62],[45,52,57,59,64]],cut:900,windG:.03,windF:420,chime:[4500,6500],chordMs:12000}},
+ {name:'ZÜMRÜT ORMAN',sky:[0x0f3a3a,0x06201f,0x020a0a],star:.95,starC:0xd8fff0,aur:[0x4dffb0,0xb9f26b],aurK:1.5,moon:0xeafff4,deep:0x02120f,far:0x072420,fog:0x081f1c,fogD:.02,clear:0x030c0b,hemi:[0x6fe0b0,0x0a2a22],moonL:0xc8ffe8,fillL:0x2a8a6a,top:[.45,.36,.28],side:[.47,.33,.16],ff:[0xd8ff70,0x70ffc8],
+  aud:{root:57,degs:[0,3,5,7,10],ch:[[33,52,55,59,62],[41,48,52,57,60],[36,52,55,59,64],[43,50,55,59,62]],cut:650,windG:.05,windF:300,chime:[7000,9000],chordMs:15000}},
+ {name:'ŞAFAK',sky:[0x7a3550,0x2a1838,0x0c0818],star:.975,starC:0xffe8d0,aur:[0xffa860,0xff6f91],aurK:.55,moon:0xfff0d8,deep:0x120a14,far:0x2a1630,fog:0x2a1530,fogD:.015,clear:0x0c0712,hemi:[0xffb080,0x2a1430],moonL:0xffd8b0,fillL:0xaa5a70,top:[.03,.30,.30],side:[.03,.28,.17],ff:[0xffc060,0xff9080],
+  aud:{root:65,degs:[0,2,4,7,9],ch:[[41,48,52,57,60],[38,53,57,60,64],[34,53,57,60,65],[36,43,55,60,62]],cut:1100,windG:.025,windF:450,chime:[3500,5000],chordMs:11000}},
+ {name:'KRİSTAL BUZ',sky:[0x1f4a6a,0x0a2238,0x030a14],star:.90,starC:0xffffff,aur:[0x62e8ff,0xa8c8ff],aurK:1.1,moon:0xf0ffff,deep:0x041420,far:0x0c2a40,fog:0x0c2438,fogD:.016,clear:0x040e1a,hemi:[0xa0e0ff,0x102a40],moonL:0xd8f4ff,fillL:0x4a90c0,top:[.55,.40,.34],side:[.56,.36,.20],ff:[0xc8f4ff,0xffffff],
+  aud:{root:67,degs:[0,2,4,7,9],ch:[[40,52,55,59,62],[36,52,55,59,64],[38,50,57,62,64],[35,50,54,57,62]],cut:1300,windG:.02,windF:520,chime:[3000,4500],chordMs:12500}},
+ {name:'KOZMOS',sky:[0x2b1d44,0x0b0818,0x010105],star:.91,starC:0xfff0c8,aur:[0xffd060,0x9a6aff],aurK:1.3,moon:0xfff4d0,deep:0x050310,far:0x120a22,fog:0x0e0820,fogD:.014,clear:0x030208,hemi:[0xc0a0ff,0x140a28],moonL:0xe8d8ff,fillL:0x6a50b0,top:[.70,.30,.26],side:[.70,.28,.14],ff:[0xffd870,0xc090ff],
+  aud:{root:60,degs:[0,2,3,7,8],ch:[[36,43,51,58,62],[32,48,51,55,60],[29,48,53,56,60],[31,43,50,55,60]],cut:700,windG:.04,windF:340,chime:[6000,9000],chordMs:16000}}
+];
+const _C=()=>new THREE.Color();
+const LOOK={sky0:_C(),sky1:_C(),sky2:_C(),starC:_C(),aur0:_C(),aur1:_C(),moon:_C(),deep:_C(),far:_C(),fog:_C(),clear:_C(),hemiS:_C(),hemiG:_C(),moonL:_C(),fillL:_C(),top:_C(),side:_C(),ff0:_C(),ff1:_C(),starT:.95,aurK:1,fogD:.016};
+const LTGT={sky0:_C(),sky1:_C(),sky2:_C(),starC:_C(),aur0:_C(),aur1:_C(),moon:_C(),deep:_C(),far:_C(),fog:_C(),clear:_C(),hemiS:_C(),hemiG:_C(),moonL:_C(),fillL:_C(),top:_C(),side:_C(),ff0:_C(),ff1:_C(),starT:.95,aurK:1,fogD:.016};
+const LKEYS=Object.keys(LOOK).filter(k=>LOOK[k] instanceof THREE.Color);
+function lookTarget(R,t){
+  const T=LTGT;
+  T.sky0.set(R.sky[0]);T.sky1.set(R.sky[1]);T.sky2.set(R.sky[2]);
+  T.starC.set(R.starC);T.aur0.set(R.aur[0]);T.aur1.set(R.aur[1]);T.moon.set(R.moon);
+  T.deep.set(R.deep);T.far.set(R.far);T.fog.set(R.fog);T.clear.set(R.clear);
+  T.hemiS.set(R.hemi[0]);T.hemiG.set(R.hemi[1]);T.moonL.set(R.moonL);T.fillL.set(R.fillL);
+  T.top.setHSL(R.top[0],R.top[1],R.top[2]);T.side.setHSL(R.side[0],R.side[1],R.side[2]);
+  T.ff0.set(R.ff[0]);T.ff1.set(R.ff[1]);
+  T.starT=R.star-.012*t;T.aurK=R.aurK*(.85+.3*t);T.fogD=R.fogD;
+}
+const _tc=new THREE.Color();
+function applyTileColor(tile){
+  if(!tile.topM)return;
+  _tc.copy(LOOK.top).offsetHSL(tile.dh||0,0,tile.dl||0);
+  tile.topM.color.copy(_tc);tile.topMm.color.copy(_tc);
+}
+function lookStep(dt,snap){
+  const k=snap?1:1-Math.exp(-dt*.55);
+  LKEYS.forEach(n=>LOOK[n].lerp(LTGT[n],k));
+  LOOK.starT+=(LTGT.starT-LOOK.starT)*k;LOOK.aurK+=(LTGT.aurK-LOOK.aurK)*k;LOOK.fogD+=(LTGT.fogD-LOOK.fogD)*k;
+  scene.fog.color.copy(LOOK.fog);scene.fog.density=LOOK.fogD;renderer.setClearColor(LOOK.clear);
+  hemi.color.copy(LOOK.hemiS);hemi.groundColor.copy(LOOK.hemiG);moon.color.copy(LOOK.moonL);fill.color.copy(LOOK.fillL);
+  sideMat.color.copy(LOOK.side);sideMatM.color.copy(LOOK.side);
+  waterMat.uniforms.uStarT.value=LOOK.starT;waterMat.uniforms.uAurK.value=LOOK.aurK;
+  tiles.forEach(applyTileColor);dying.forEach(applyTileColor);
+}
+
+
 /* ================= WATER ================= */
 const SKY_GLSL=`
 float h13(vec3 p){p=fract(p*.1031);p+=dot(p,p.zyx+31.32);return fract((p.x+p.y)*p.z);}
 vec3 skyCol(vec3 d,float t){
   float h=clamp(d.y,0.,1.);
-  vec3 c=mix(vec3(.075,.12,.25),vec3(.02,.04,.12),smoothstep(0.,.4,h));
-  c=mix(c,vec3(.006,.012,.04),smoothstep(.35,1.,h));
+  vec3 c=mix(uSky0,uSky1,smoothstep(0.,.4,h));
+  c=mix(c,uSky2,smoothstep(.35,1.,h));
   vec3 p=d*75.;vec3 id=floor(p);vec3 f=fract(p)-.5;
   float r=h13(id);
-  if(r>=.95&&h>.03){
+  if(r>=uStarT&&h>.03){
     vec3 off=vec3(h13(id+7.1),h13(id+13.7),h13(id+3.3))-.5;
     float s=smoothstep(.15,.02,length(f-off*.5));
     s*=.55+.45*sin(t*1.7+r*80.);
-    c+=vec3(.8,.88,1.)*s*smoothstep(.03,.3,h);
+    c+=uStarC*s*smoothstep(.03,.3,h);
   }
   vec3 m=normalize(vec3(-.62,.6,-.5));
   float md=dot(d,m);
-  c+=vec3(.92,.95,1.)*smoothstep(.9988,.9994,md);
-  c+=vec3(.35,.45,.8)*pow(max(md,0.),90.)*.4+vec3(.15,.22,.45)*pow(max(md,0.),10.)*.3;
+  c+=uMoon*smoothstep(.9988,.9994,md);
+  c+=uMoon*vec3(.38,.47,.8)*pow(max(md,0.),90.)*.4+uMoon*vec3(.16,.23,.45)*pow(max(md,0.),10.)*.3;
   float band=smoothstep(.3,.5,h)*smoothstep(.98,.6,h);
   if(band>.002){
     float ang=atan(d.z,d.x);
     float w=.5+.5*sin(ang*3.+t*.12+sin(h*7.+t*.17)*1.6);
     float w2=.5+.5*sin(ang*5.-t*.09+h*4.);
-    vec3 ac=mix(vec3(.1,.85,.6),vec3(.45,.3,.95),w2);
-    c+=ac*band*w*w*.38;
+    vec3 ac=mix(uAur0,uAur1,w2);
+    c+=ac*band*w*w*.38*uAurK;
   }
   return c;
 }`;
 const ripArr=[];for(let i=0;i<8;i++)ripArr.push(new THREE.Vector4(0,0,-999,0));
 let ripI=0;
 const waterMat=new THREE.ShaderMaterial({
-  uniforms:{uTime:{value:0},uCam:{value:new THREE.Vector3()},uRip:{value:ripArr}},
+  uniforms:{uTime:{value:0},uCam:{value:new THREE.Vector3()},uRip:{value:ripArr},uSky0:{value:LOOK.sky0},uSky1:{value:LOOK.sky1},uSky2:{value:LOOK.sky2},uStarC:{value:LOOK.starC},uAur0:{value:LOOK.aur0},uAur1:{value:LOOK.aur1},uMoon:{value:LOOK.moon},uDeep:{value:LOOK.deep},uFar:{value:LOOK.far},uStarT:{value:.95},uAurK:{value:1}},
   transparent:true,depthWrite:false,
   vertexShader:'varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:'varying vec3 vW;uniform float uTime;uniform vec3 uCam;uniform vec4 uRip[8];'+SKY_GLSL+`
+  fragmentShader:'varying vec3 vW;uniform float uTime;uniform vec3 uCam;uniform vec4 uRip[8];uniform vec3 uSky0,uSky1,uSky2,uStarC,uAur0,uAur1,uMoon,uDeep,uFar;uniform float uStarT,uAurK;'+SKY_GLSL+`
 void main(){
   vec2 p=vW.xz;
   vec3 V=normalize(uCam-vW);
-  vec2 g=vec2(cos(p.x*.9+uTime*.5)*.05+cos((p.x+p.y)*1.9-uTime*.8)*.025+cos(p.y*3.1+uTime*1.1)*.012,
-              cos(p.y*.8+uTime*.45)*.05+cos((p.x-p.y)*1.5+uTime*.7)*.025+cos(p.x*2.7-uTime*.9)*.012);
+  float dist=length(uCam-vW);
+  float lod=smoothstep(12.,42.,dist); /* uzaktayken ince dalgalar piksel altına düşüp parçalanıyor: yumuşat */
+  vec2 g=vec2(cos(p.x*.9+uTime*.5)*.05+cos((p.x+p.y)*1.9-uTime*.8)*.025*(1.-lod)+cos(p.y*3.1+uTime*1.1)*.012*(1.-lod),
+              cos(p.y*.8+uTime*.45)*.05+cos((p.x-p.y)*1.5+uTime*.7)*.025*(1.-lod)+cos(p.x*2.7-uTime*.9)*.012*(1.-lod));
+  g*=mix(1.,.45,lod);
   for(int i=0;i<8;i++){
     vec4 r=uRip[i];float age=uTime-r.z;
     if(age>0.&&age<6.){
       vec2 dv=p-r.xy;float d=length(dv)+1e-3;float w=d-age*1.5;
       float env=exp(-w*w*5.)*exp(-age*.7)*r.w/(1.+d*.5);
-      g+=dv/d*cos(w*10.)*env*.7;
+      g+=dv/d*cos(w*10.)*env*.7*(1.-.8*lod);
     }
   }
   vec3 N=normalize(vec3(-g.x,1.,-g.y));
   vec3 R=reflect(-V,N);R.y=abs(R.y)+.001;
   vec3 sk=skyCol(normalize(R),uTime);
   float fr=.5+.4*pow(1.-clamp(dot(N,V),0.,1.),3.);
-  vec3 col=mix(vec3(.012,.035,.075),sk,fr)+vec3(0.,.015,.03);
-  col+=vec3(.08,.12,.2)*clamp(length(g)*3.,0.,1.)*.5;
-  float fade=smoothstep(70.,220.,length(uCam-vW));
-  col=mix(col,vec3(.03,.06,.13),fade);
+  vec3 col=mix(uDeep,sk,fr)+uDeep*vec3(0.,.43,.4);
+  col+=uSky0*1.1*clamp(length(g)*3.,0.,1.)*.5;
+  float fade=smoothstep(70.,220.,dist);
+  col=mix(col,uFar,fade);
   gl_FragColor=vec4(col,mix(.62+.2*fr,1.,fade));
 }`
 });
@@ -410,7 +464,7 @@ for(let i=0;i<FF*4;i++)ffSeed[i]=Math.random();
 ffGeo.setAttribute('position',new THREE.BufferAttribute(ffPos,3));
 ffGeo.setAttribute('aSeed',new THREE.BufferAttribute(ffSeed,4));
 const ffMat=new THREE.ShaderMaterial({
-  uniforms:{uTime:{value:0},uScale:{value:600},uSpread:{value:8},uCenter:{value:new THREE.Vector3()}},
+  uniforms:{uTime:{value:0},uScale:{value:600},uSpread:{value:8},uCenter:{value:new THREE.Vector3()},uFF0:{value:LOOK.ff0},uFF1:{value:LOOK.ff1}},
   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
   vertexShader:`attribute vec4 aSeed;uniform float uTime,uScale,uSpread;uniform vec3 uCenter;varying float vT;varying float vH;
 void main(){
@@ -422,9 +476,9 @@ void main(){
   gl_PointSize=(.11+.07*vT)*uScale/-mv.z;
   gl_Position=projectionMatrix*mv;
 }`,
-  fragmentShader:`varying float vT;varying float vH;
+  fragmentShader:`uniform vec3 uFF0,uFF1;varying float vT;varying float vH;
 void main(){float d=length(gl_PointCoord-.5);float a=smoothstep(.5,0.,d);a*=a;
-  vec3 c=mix(vec3(.75,1.,.45),vec3(.5,.9,1.),vH);
+  vec3 c=mix(uFF0,uFF1,vH);
   gl_FragColor=vec4(c,a*(.25+.75*vT));}`
 });
 const fireflies=new THREE.Points(ffGeo,ffMat);fireflies.frustumCulled=false;fireflies.renderOrder=4;scene.add(fireflies);
@@ -459,7 +513,7 @@ function easeOutBack(u){const c1=1.3,c3=c1+1;return 1+c3*Math.pow(u-1,3)+c1*Math
 
 function createTile(x,z,t0){
   const tile={x,z,key:key(x,z),y:-3,state:'rise',t0:t0,tS:0,lit:false,litv:0,litCol:new THREE.Color(),pulseT:-9,target:null,fx:null,phase:Math.random()*TAU};
-  const topC=new THREE.Color().setHSL(.62+(Math.random()-.5)*.03,.38,.30+(Math.random()-.5)*.03);
+  tile.dh=(Math.random()-.5)*.03;tile.dl=(Math.random()-.5)*.03;const topC=new THREE.Color().copy(LOOK.top).offsetHSL(tile.dh,0,tile.dl);
   tile.topM=new THREE.MeshStandardMaterial({color:topC,roughness:.85,metalness:.05,emissive:0x000000});
   tile.topMm=tile.topM.clone();tile.topMm.clippingPlanes=[mirrorPlane];
   tile.root=new THREE.Group();tile.mir=new THREE.Group();
@@ -559,6 +613,7 @@ function snapQuat(q){_m.makeRotationFromQuaternion(q);const e=_m.elements;for(le
 
 /* ================= GAME STATE ================= */
 let level=1,state='intro';
+let forcedRealm=-1,curRealm=-1,lookUntil=0;
 let pageOpen=false,curPage=null;
 let roll=null,pending=null,landT=-9,cubeSpawnT=Infinity,cubeLanded=false,lastMoveT=0;
 let history=[];
@@ -569,8 +624,9 @@ let ac=null,master=null,dryBus=null,revBus=null,noiseBuf=null,muted=false,padOsc
 function loadVol(){try{const v=parseFloat(localStorage.getItem('kup.vol'));return isFinite(v)?clamp(v,0,1):1;}catch(e){return 1;}}
 let vol=loadVol();
 const masterTarget=()=>muted?0:.8*vol*vol; /* kare eğri: kaydırıcı kulağa daha doğal gelir */
-const SCALE=[60,62,64,67,69,72,74,76,79,81,84];
-const CH=[[45,57,60,64,67],[41,53,57,60,64],[48,55,59,62,64],[43,55,59,62,64]];
+const SCALE=[];let AUD=REALMS[0].aud,CH=AUD.ch,chordI=0,padLP=null,windG=null,windBP=null;
+function buildScale(root,degs){SCALE.length=0;for(let i=0;i<11;i++)SCALE.push(root+degs[i%degs.length]+12*((i/degs.length)|0));}
+buildScale(AUD.root,AUD.degs);
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 function impulse(sec,decay){const r=ac.sampleRate,len=(r*sec)|0,b=ac.createBuffer(2,len,r);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;}
 function makeNoise(sec){const b=ac.createBuffer(1,(ac.sampleRate*sec)|0,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b;}
@@ -620,25 +676,24 @@ function lowTone(){
 }
 function startAmbient(){
   const t=ac.currentTime;
-  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=800;lp.Q.value=.4;
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=AUD.cut;lp.Q.value=.4;padLP=lp;
   const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=.045;lg.gain.value=260;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
   const pg=ac.createGain();pg.gain.value=0;pg.gain.setTargetAtTime(.17,t,4);lp.connect(pg);out(pg,.8);
-  CH[0].forEach((m,i)=>{
+  CH[chordI].forEach((m,i)=>{
     [['sine',-5,1],['triangle',6,.45]].forEach(v=>{
       const o=ac.createOscillator(),g=ac.createGain();o.type=v[0];o.detune.value=v[1];o.frequency.value=mtof(m);
       g.gain.value=(i===0?.5:.22)*v[2];o.connect(g);g.connect(lp);o.start();padOsc.push({o:o,i:i});
     });
   });
-  let ci=0;
-  setInterval(()=>{ci=(ci+1)%CH.length;const tt=ac.currentTime;padOsc.forEach(p=>p.o.frequency.setTargetAtTime(mtof(CH[ci][p.i]),tt,2.2));},13000);
+  (function chord(){later(AUD.chordMs,()=>{chordI=(chordI+1)%CH.length;const tt=ac.currentTime;padOsc.forEach(p=>p.o.frequency.setTargetAtTime(mtof(CH[chordI][p.i]),tt,2.2));chord();});})();
   const wn=ac.createBufferSource();wn.buffer=noiseBuf;wn.loop=true;
-  const wbp=ac.createBiquadFilter();wbp.type='bandpass';wbp.frequency.value=380;wbp.Q.value=.7;
-  const wg=ac.createGain();wg.gain.value=.035;
+  const wbp=ac.createBiquadFilter();wbp.type='bandpass';wbp.frequency.value=AUD.windF;wbp.Q.value=.7;windBP=wbp;
+  const wg=ac.createGain();wg.gain.value=AUD.windG;windG=wg;
   const wl=ac.createOscillator(),wlg=ac.createGain();wl.frequency.value=.08;wlg.gain.value=170;wl.connect(wlg);wlg.connect(wbp.frequency);wl.start();
   const wl2=ac.createOscillator(),wl2g=ac.createGain();wl2.frequency.value=.05;wl2g.gain.value=.02;wl2.connect(wl2g);wl2g.connect(wg.gain);wl2.start();
   wn.connect(wbp);wbp.connect(wg);out(wg,.3);wn.start();
   (function chime(){
-    later(5000+Math.random()*7000,()=>{
+    later(AUD.chime[0]+Math.random()*AUD.chime[1],()=>{
       if(ac&&!muted&&ac.state==='running'&&state!=='intro')pluck(SCALE[(Math.random()*SCALE.length)|0]+(Math.random()<.3?12:0),.22,0,.95);
       chime();
     });
@@ -688,11 +743,11 @@ function buildDots(){
 }
 function updateDots(){const el=$('dots').children;targets.forEach((t,i)=>{if(el[i])el[i].classList.toggle('on',t.lit);});}
 let toastTimer=0;
-function toast(txt){const el=$('toast');el.textContent=txt;el.classList.add('show');clearTimeout(toastTimer);toastTimer=later(1900,()=>el.classList.remove('show'));}
+function toast(txt,sub){const el=$('toast');el.textContent=txt;if(sub){const sm=document.createElement('small');sm.textContent=sub;el.appendChild(sm);}el.classList.add('show');clearTimeout(toastTimer);toastTimer=later(sub?3200:1900,()=>el.classList.remove('show'));}
 function hideHint(){$('hint').classList.remove('show');}
 
 /* ---- island generation ---- */
-const CAP=46;
+const CAP0=46;let capOff=false,zoomOff=false;
 let camGoal={cx:0,cz:0,hw:3,hh:3};
 const RV=new THREE.Vector3(Math.SQRT1_2,0,-Math.SQRT1_2),FV=new THREE.Vector3(-Math.SQRT1_2,0,-Math.SQRT1_2);
 function computeBounds(){
@@ -714,19 +769,20 @@ function connectedWithout(removed){
   }
   return seen.size===tiles.size-removed.size;
 }
-function growIsland(){
-  const add=Math.min(3+Math.floor(level*.8),7);
-  for(let i=0;i<add;i++){
+function addTiles(n,soundMax){
+  for(let i=0;i<n;i++){
     const cand=new Map();
     tiles.forEach(t=>{DIRS.forEach(d=>{const x=t.x+d.x,z=t.z+d.z,k=key(x,z);if(!tiles.has(k)&&!cand.has(k))cand.set(k,[x,z]);});});
     let best=null,bs=-1;
     cand.forEach(v=>{
-      let n=0;DIRS.forEach(d=>{if(tiles.has(key(v[0]+d.x,v[1]+d.z)))n++;});
-      const s=n+Math.random()*1.5;if(s>bs){bs=s;best=v;}
+      let c=0;DIRS.forEach(d=>{if(tiles.has(key(v[0]+d.x,v[1]+d.z)))c++;});
+      const sc=c+Math.random()*1.5;if(sc>bs){bs=sc;best=v;}
     });
-    if(best){const t=createTile(best[0],best[1],now+.15+i*.13);scheduleRiseSound(t);}
+    if(best){const t=createTile(best[0],best[1],now+.15+Math.min(i,40)*.13);if(i<soundMax)scheduleRiseSound(t);}
   }
-  let excess=tiles.size-CAP;
+}
+function pruneIsland(){
+  let excess=capOff?0:tiles.size-CAP0;
   if(excess>0){
     const list=[...tiles.values()].filter(t=>!(t.x===cube.x&&t.z===cube.z)&&t.state!=='rise');
     list.sort((a,b)=>Math.hypot(b.x-cube.x,b.z-cube.z)-Math.hypot(a.x-cube.x,a.z-cube.z));
@@ -741,7 +797,127 @@ function growIsland(){
       const t=tiles.get(k);tiles.delete(k);t.state='sink';t.tS=now+di*.1;di++;dying.push(t);
     });
   }
+}
+function growIsland(){
+  const add=Math.min(3+Math.floor(level*.8),7);
+  addTiles(add,add);
+  pruneIsland();
   computeBounds();
+}
+/* hızlı test: seviye atlamadan zemini istenen kadar büyüt */
+function devGrow(n){
+  n=Math.max(1,Math.min(400,Math.floor(n)||0));
+  addTiles(n,6);pruneIsland();computeBounds();
+  return tiles.size;
+}
+function devLimits(){pruneIsland();computeBounds();}
+
+/* ---- oyun modu: BULMACA ----
+   Her bölümde eski karolar batar (küpün durduğu karo hariç) ve ekranda YUKARI (ileri) doğru
+   küçük bir "oda + koridor" düzeni yükselir: odalar, dönemeçli koridorlar, çıkmaz kollar.
+   Hedefler çözülebilirlik (BFS) ve zorluk için denenerek seçilir. Geriye dönüş yok. */
+let gameMode='free',puzzleHead=D.n;
+function setGameMode(m){gameMode=(m==='puzzle')?'puzzle':'free';}
+const rndI=(a,b)=>a+((Math.random()*(b-a+1))|0);
+function genLayout(L){
+  const T=new Map();const add=(u,v)=>T.set(u+','+v,[u,v]);
+  const rooms=Math.min(2+(((L-1)/3)|0),4);
+  let u=0,v=0;const rl=[];
+  for(let r=0;r<rooms;r++){
+    const rw=rndI(2,3),len=rndI(2,3),v0=v-rndI(0,rw-1);
+    for(let a=0;a<len;a++)for(let c=0;c<rw;c++)add(u+a,v0+c);
+    rl.push({u0:u,u1:u+len-1,v0:v0,v1:v0+rw-1});
+    if(r===rooms-1)break;
+    const eu=u+len-1,ev=rndI(v0,v0+rw-1),cl=rndI(1,3);
+    for(let a=1;a<=cl;a++)add(eu+a,ev);
+    let cu=eu+cl,cv=ev;
+    if(Math.random()<.6){
+      const m=rndI(1,3)*(Math.random()<.5?-1:1),st=Math.sign(m);
+      for(let c=1;c<=Math.abs(m);c++)add(cu,cv+st*c);
+      cv+=m;
+    }
+    u=cu+1;v=cv;
+  }
+  /* çıkmaz kollar */
+  rl.forEach(r=>{
+    if(Math.random()<.55){
+      const side=Math.random()<.5?-1:1,a=rndI(r.u0,r.u1),len=rndI(1,2),base=side<0?r.v0:r.v1;
+      for(let c=1;c<=len;c++)add(a,base+side*c);
+    }
+  });
+  return [...T.values()];
+}
+function buildPuzzleArea(){
+  const start=tiles.get(key(cube.x,cube.z));
+  /* eski karoları batır */
+  const old=[...tiles.values()].filter(t=>t!==start);
+  old.sort((a,b)=>Math.hypot(a.x-cube.x,a.z-cube.z)-Math.hypot(b.x-cube.x,b.z-cube.z));
+  const oldKeys=new Set();let di=0,sinkEnd=now;
+  old.forEach(t=>{oldKeys.add(t.key);tiles.delete(t.key);t.state='sink';t.tS=now+di*.04;sinkEnd=Math.max(sinkEnd,t.tS+.9);di++;dying.push(t);});
+  /* ileri = ekranda yukarı: kuzey ya da batı, çoğunlukla dönüşümlü */
+  puzzleHead=(Math.random()<.7)?(puzzleHead===D.n?D.w:D.n):puzzleHead;
+  const F=puzzleHead,Lt={x:-F.z,z:F.x},sg=Math.random()<.5?1:-1;
+  const cells=genLayout(level).sort((a,b)=>a[0]-b[0]);
+  let i=0;
+  cells.forEach(c=>{
+    const x=cube.x+c[0]*F.x+c[1]*sg*Lt.x,z=cube.z+c[0]*F.z+c[1]*sg*Lt.z,k=key(x,z);
+    if(tiles.has(k))return;
+    let t0=now+.7+i*.07;i++;
+    if(oldKeys.has(k))t0=Math.max(t0,sinkEnd+.1); /* aynı konumda batan karo varsa bitmesini bekle */
+    const t=createTile(x,z,t0);scheduleRiseSound(t);
+  });
+  computeBounds();
+}
+/* hedefler: ileri doğru dağılmış, BFS ile çözülebilir ve en uzun çözümlü adaylardan biri */
+function solveLen(nodes,idx,nb,tg,oc){
+  const n=tg.length,M=1<<n,NO=24;
+  const bit=new Int8Array(nodes.length).fill(-1),face=new Int8Array(nodes.length);
+  tg.forEach((q,b)=>{bit[q.i]=b;face[q.i]=q.face;});
+  const dist=new Int16Array(nodes.length*NO*M).fill(-1);
+  const queue=new Int32Array(dist.length);let qh=0,qt=0;
+  const s0=((idx.get(key(cube.x,cube.z))*NO+oc.id(cube.f))*M);
+  dist[s0]=0;queue[qt++]=s0;
+  while(qh<qt){
+    const st=queue[qh++],mask=st%M,r=(st-mask)/M,o=r%NO,t=(r-o)/NO,dd=dist[st];
+    for(let di=0;di<4;di++){
+      const j=nb[t][di];if(j<0)continue;
+      const o2=oc.next(o,di);let m2=mask;
+      if(bit[j]>=0&&oc.list[o2].down===face[j])m2|=1<<bit[j];
+      const st2=(j*NO+o2)*M+m2;
+      if(dist[st2]<0){dist[st2]=dd+1;if(m2===M-1)return dd+1;queue[qt++]=st2;}
+    }
+  }
+  return -1;
+}
+function genTargetsPuzzle(n){
+  const nodes=[...tiles.values()].filter(t=>t.state!=='sink');
+  const idx=new Map(nodes.map((t,i)=>[t.key,i]));
+  const nb=nodes.map(t=>DIRS.map(d=>{const j=idx.get(key(t.x+d.x,t.z+d.z));return j===undefined?-1:j;}));
+  const oMap=new Map(),list=[],nx=[];
+  const oc={list:list,
+    id(f){const k=f.down*6+f.n;let i=oMap.get(k);if(i===undefined){i=list.length;oMap.set(k,i);list.push(f);nx.push([-1,-1,-1,-1]);}return i;},
+    next(o,di){const a=nx[o];if(a[di]<0)a[di]=oc.id(rollState(list[o],DIRS[di]));return a[di];}};
+  const F=puzzleHead,uOf=t=>(t.x-cube.x)*F.x+(t.z-cube.z)*F.z;
+  const cand=nodes.filter(t=>!(t.x===cube.x&&t.z===cube.z));
+  if(!cand.length)return [];
+  n=Math.min(n,cand.length,6);
+  cand.sort((a,b)=>uOf(b)-uOf(a));
+  const far=cand.slice(0,Math.max(1,Math.ceil(cand.length*.25)));
+  let best=null,bl=-1;
+  for(let a=0;a<40;a++){
+    const pick=[far[(Math.random()*far.length)|0]];
+    const rest=cand.filter(t=>t!==pick[0]);
+    while(pick.length<n&&rest.length){pick.push(rest.splice((Math.random()*rest.length)|0,1)[0]);}
+    const faces=[0,1,2,3,4,5].sort(()=>Math.random()-.5);
+    const tg=pick.map((t,i)=>({i:idx.get(t.key),face:faces[i],x:t.x,z:t.z}));
+    const L=solveLen(nodes,idx,nb,tg,oc);
+    if(L>bl){bl=L;best=tg;}
+  }
+  return bl<0?[]:best.map(q=>({x:q.x,z:q.z,face:q.face}));
+}
+function devSkipLevel(){
+  if(state!=='play'||roll)return false;
+  state='trans';pending=null;nextLevel();return true;
 }
 function scheduleRiseSound(tile){
   const ms=Math.max(0,(tile.t0-now)*1000)+400;
@@ -770,9 +946,11 @@ function genTargets(n){
   return res;
 }
 function placeTargets(){
-  const n=Math.min(7,1+Math.floor((level-1)*.6+.4),tiles.size-1);
+  const n=gameMode==='puzzle'?Math.min(6,2+(((level-1)/2)|0),tiles.size-1):Math.min(7,1+Math.floor((level-1)*.6+.4),tiles.size-1);
   targets=[];
-  genTargets(n).forEach(r=>{
+  let gt=gameMode==='puzzle'?genTargetsPuzzle(n):[];
+  if(!gt.length)gt=genTargets(n);
+  gt.forEach(r=>{
     const t=tiles.get(key(r.x,r.z));if(!t)return;
     t.target={face:r.face};t.fx=makeFx(t,r.face);fxList.push(t.fx);targets.push(t);
   });
@@ -855,10 +1033,10 @@ function levelComplete(){
   later(1700,nextLevel);
 }
 function nextLevel(){
-  level++;toast('SEVİYE '+level);emit('level',{level:level});
+  level++;const realmChanged=applyRealm(false);toast('SEVİYE '+level,realmChanged?REALMS[curRealm].name:null);if(realmChanged)sfxRealm();emit('level',{level:level});
   targets.forEach(t=>{if(t.fx)t.fx.mode='out';t.lit=false;t.target=null;t.fx=null;});
   targets=[];history=[];buildDots();
-  growIsland();
+  if(gameMode==='puzzle')buildPuzzleArea();else growIsland();
   later(1700,()=>{placeTargets();state='play';});
 }
 
@@ -1037,6 +1215,111 @@ function addDevSection(sec){
   });
 })();
 
+/* ---- yerleşik bölüm: hızlı test (zemini büyüt) ---- */
+(function(){
+  capOff=devStore.get('capOff',false)===true;zoomOff=devStore.get('zoomOff',false)===true;
+  let info=null,inp=null;const sws=[];
+  const paint=()=>{
+    sws.forEach(o=>o.sw.setAttribute('aria-checked',o.get()?'true':'false'));
+    if(info)info.textContent='Şu an '+tiles.size+' karo · karo sınırı '+(capOff?'kaldırıldı':CAP0+' (fazlası silinir)')+' · zoom sınırı '+(zoomOff?'kaldırıldı':'açık');
+  };
+  const toggle=(body,label,get,set)=>{
+    const row=document.createElement('div');row.className='tgl-row';row.style.marginTop='10px';
+    const t=document.createElement('span');t.textContent=label;
+    const sw=document.createElement('button');sw.className='tgl';sw.type='button';sw.setAttribute('role','switch');sw.setAttribute('aria-label',label);
+    sw.appendChild(document.createElement('i'));
+    sw.addEventListener('click',()=>{set(!get());paint();if(ac&&!muted)pluck(SCALE[get()?5:3],.25,0,.6);});
+    row.appendChild(t);row.appendChild(sw);body.appendChild(row);sws.push({sw,get});
+  };
+  const mk=(txt,fn)=>{const b=document.createElement('button');b.type='button';b.className='btn glass';b.style.margin='8px 8px 0 0';b.style.padding='10px 16px';b.textContent=txt;b.addEventListener('click',()=>{if(state!=='play'){toast('Önce oyunu başlat');return;}fn();paint();if(ac&&!muted)pluck(SCALE[5],.25,0,.6);});return b;};
+  addDevSection({
+    id:'fasttest',title:'HIZLI TEST',
+    render(body){
+      toggle(body,'Karo sınırını kaldır (46)',()=>capOff,v=>{capOff=v;devStore.set('capOff',v);if(!v&&state==='play')devLimits();});
+      toggle(body,'Zoom sınırını kaldır',()=>zoomOff,v=>{zoomOff=v;devStore.set('zoomOff',v);});
+      const row=document.createElement('div');row.className='tgl-row';row.style.marginTop='14px';
+      const t=document.createElement('span');t.textContent='Eklenecek karo sayısı';
+      inp=document.createElement('input');inp.type='number';inp.inputMode='numeric';inp.min='1';inp.max='400';inp.value=String(devStore.get('growN',10));
+      inp.style.cssText='width:84px;padding:10px 12px;border-radius:12px;border:1px solid rgba(160,175,255,.35);background:rgba(10,14,40,.5);color:inherit;font:inherit;font-size:15px;text-align:center';
+      inp.setAttribute('aria-label','Eklenecek karo sayısı');
+      row.appendChild(t);row.appendChild(inp);body.appendChild(row);
+      const go=n=>{devStore.set('growN',n);devGrow(n);};
+      body.appendChild(mk('Büyüt',()=>go(+inp.value||1)));
+      [5,10,25].forEach(n=>body.appendChild(mk('+'+n,()=>go(n))));
+      info=document.createElement('p');info.className='note';info.style.fontSize='11.5px';body.appendChild(info);
+      const n=document.createElement('p');n.className='note';
+      n.textContent='Seviye atlamadan zemini anında büyütür. Karo sınırı açıkken (kaldırılmamışsa) 46’yı aşan uzak karolar silinir; sınırı tekrar açınca da fazlası temizlenir.';
+      body.appendChild(n);paint();
+    },
+    onReset(){capOff=false;zoomOff=false;if(state==='play')devLimits();paint();}
+  });
+  setInterval(()=>{if(pageOpen&&curPage&&curPage.id==='pgDev')paint();},700);
+})();
+
+/* ---- yerleşik bölüm: oyun modu (test) ---- */
+(function(){
+  const MODES=[
+    {id:'free',name:'SERBEST',note:'Mevcut mod: ada her seviyede büyür, eski karolara dönebilirsin.'},
+    {id:'puzzle',name:'BULMACA',note:'Her bölümde ekranda yukarı doğru küçük bir oda ve koridor düzeni yükselir (dönemeçler, çıkmaz kollar). Eski karolar batar, geri dönüş olmaz. Hedefler çözülebilir ve en dolambaçlı adaylardan seçilir.'}
+  ];
+  setGameMode(devStore.get('mode','free'));
+  const btns=[];let noteEl=null;
+  const paint=()=>{
+    btns.forEach(o=>{const on=o.id===gameMode;o.b.setAttribute('aria-pressed',on?'true':'false');o.b.style.borderColor=on?'rgba(190,205,255,.9)':'';o.b.style.color=on?'#fff':'';o.b.style.background=on?'rgba(110,130,255,.28)':'';});
+    if(noteEl)noteEl.textContent=(MODES.find(m=>m.id===gameMode)||MODES[0]).note+(state==='play'?' Değişiklik bir sonraki bölümde başlar.':'');
+  };
+  addDevSection({
+    id:'mode',title:'OYUN MODU (TEST)',
+    render(body){
+      const wrap=document.createElement('div');
+      MODES.forEach(m=>{
+        const b=document.createElement('button');b.type='button';b.className='btn glass';b.style.margin='4px 8px 0 0';b.style.padding='10px 16px';b.textContent=m.name;
+        b.addEventListener('click',()=>{setGameMode(m.id);devStore.set('mode',m.id);paint();if(ac&&!muted)pluck(SCALE[5],.25,0,.6);});
+        wrap.appendChild(b);btns.push({id:m.id,b});
+      });
+      body.appendChild(wrap);
+      noteEl=document.createElement('p');noteEl.className='note';body.appendChild(noteEl);
+      const sk=document.createElement('button');sk.type='button';sk.className='btn glass';sk.style.margin='8px 0 0';sk.style.padding='10px 16px';sk.textContent='Sonraki bölüme geç';
+      sk.addEventListener('click',()=>{if(!devSkipLevel())toast('Oyun sırasında, küp durağanken kullan');else if(ac&&!muted)pluck(SCALE[6],.3,0,.6);});
+      body.appendChild(sk);
+      paint();
+    },
+    onReset(){setGameMode('free');paint();}
+  });
+})();
+
+/* ---- yerleşik bölüm: bölgeler (önizleme) ---- */
+(function(){
+  const btns=[];let noteEl=null;
+  const paint=()=>{
+    btns.forEach(o=>{const on=o.id===forcedRealm;o.b.style.borderColor=on?'rgba(190,205,255,.9)':'';o.b.style.color=on?'#fff':'';o.b.style.background=on?'rgba(110,130,255,.28)':'';});
+    if(noteEl)noteEl.textContent=forcedRealm<0
+      ?'Otomatik: her '+REALM_LEN+' seviyede yeni bölge (gökyüzü, aurora, sis, su, karolar, ateş böcekleri, müzik ölçeği ve akorlar). Şu an: '+REALMS[Math.max(0,curRealm)].name+'.'
+      :'Sabit: '+REALMS[forcedRealm].name+'. Seviye ilerlese de bölge değişmez; otomatiğe dönmek için OTOMATİK’e dokun.';
+  };
+  const pick=i=>{
+    forcedRealm=i;devStore.set('realm',i);
+    const ch=applyRealm(false);if(ch)sfxRealm();
+    paint();
+  };
+  addDevSection({
+    id:'realms',title:'BÖLGELER (GÖRÜNÜM + SES)',
+    render(body){
+      const wrap=document.createElement('div');
+      [{id:-1,name:'OTOMATİK'}].concat(REALMS.map((r,i)=>({id:i,name:r.name}))).forEach(m=>{
+        const b=document.createElement('button');b.type='button';b.className='btn glass';b.style.margin='4px 8px 0 0';b.style.padding='10px 14px';b.style.fontSize='12px';b.textContent=m.name;
+        b.addEventListener('click',()=>pick(m.id));
+        wrap.appendChild(b);btns.push({id:m.id,b});
+      });
+      body.appendChild(wrap);
+      noteEl=document.createElement('p');noteEl.className='note';body.appendChild(noteEl);
+      paint();
+    },
+    onReset(){forcedRealm=-1;applyRealm(false);paint();}
+  });
+  setInterval(()=>{if(pageOpen&&curPage&&curPage.id==='pgDev')paint();},700);
+})();
+
 window.KUP=Object.freeze({
   version:'1.1',safe:SAFE,
   on(ev,fn){(KL[ev]=KL[ev]||[]).push(fn);},
@@ -1045,6 +1328,32 @@ window.KUP=Object.freeze({
   getState(){return{level:level,state:state,cube:{x:cube.x,z:cube.z,down:cube.f.down},targets:targets.length,lit:targets.filter(t=>t.lit).length};},
   audio:{get volume(){return vol;},get muted(){return muted;}}
 });
+
+/* ---- bölgeler: seviyeye göre görünüm + ses ---- */
+function realmOf(L){return forcedRealm>=0?forcedRealm:(((L-1)/REALM_LEN)|0)%REALMS.length;}
+function intensOf(L){return forcedRealm>=0?.5:((L-1)%REALM_LEN)/(REALM_LEN-1);}
+function applyRealm(snap){
+  const idx=realmOf(level),R=REALMS[idx],t=intensOf(level),changed=idx!==curRealm;
+  curRealm=idx;AUD=R.aud;
+  lookTarget(R,t);
+  if(snap)lookStep(0,true);else lookUntil=now+14;
+  if(changed){
+    buildScale(AUD.root,AUD.degs);CH=AUD.ch;chordI=0;
+    if(ac&&padOsc.length){const tt=ac.currentTime;padOsc.forEach(p=>p.o.frequency.setTargetAtTime(mtof(CH[0][p.i]),tt,3));}
+  }
+  if(ac){
+    const tt=ac.currentTime;
+    if(padLP)padLP.frequency.setTargetAtTime(AUD.cut+140*t,tt,3);
+    if(windG)windG.gain.setTargetAtTime(AUD.windG,tt,3);
+    if(windBP)windBP.frequency.setTargetAtTime(AUD.windF,tt,3);
+  }
+  return changed;
+}
+function sfxRealm(){
+  if(!ac||muted)return;
+  [0,2,4,6,8,10].forEach((si,i)=>bell(SCALE[si],.45,.25+i*.17,true));
+  pluck(SCALE[7],.5,1.3,.95);
+}
 
 /* ---- start ---- */
 function goFullscreen(){
@@ -1071,6 +1380,8 @@ function begin(){
 /* ---- initial island ---- */
 for(let x=-1;x<=1;x++)for(let z=-1;z<=1;z++)createTile(x,z,Infinity);
 computeBounds();updatePad();
+{const fr=devStore.get('realm',-1);forcedRealm=(typeof fr==='number'&&fr>=0&&fr<REALMS.length)?fr:-1;}
+applyRealm(true);
 camGoal.dist=14;
 const camT=new THREE.Vector3(camGoal.cx,0,camGoal.cz);
 let camDist=16;
@@ -1124,6 +1435,7 @@ function frame(ts){
     }
   }
 
+  if(now<lookUntil)lookStep(dt,false);
   tiles.forEach(t=>updateTile(t,dt));
   for(let i=dying.length-1;i>=0;i--){updateTile(dying[i],dt);if(dying[i].dead){destroyTile(dying[i]);dying.splice(i,1);}}
   updateFx(dt);
@@ -1173,10 +1485,13 @@ function frame(ts){
   if(state==='play'&&!pageOpen&&now-lastMoveT>22){lastMoveT=now;fxList.forEach(f=>{if(!f.lit)f.nope=.8;});}
 
   /* camera */
-  tgt.set(camGoal.cx*.78+cubeGroup.position.x*.22,0,camGoal.cz*.78+cubeGroup.position.z*.22);
+  const cw=(gameMode==='puzzle'&&!zoomOff)?.65:.5;
+  tgt.set(camGoal.cx*(1-cw)+cubeGroup.position.x*cw,0,camGoal.cz*(1-cw)+cubeGroup.position.z*cw);
   camT.lerp(tgt,1-Math.exp(-dt*2.4));
   const tn=Math.tan(FOV*Math.PI/360);
-  const goalDist=Math.max(9,Math.max(camGoal.hw/(tn*camera.aspect),camGoal.hh/tn)*1.12)*(pageOpen?1.12:1);
+  const fitD=Math.max(9,Math.max(camGoal.hw/(tn*camera.aspect),camGoal.hh/tn)*1.12);
+  /* bulmaca: alan her bölümde değiştiği için sığdırma mesafesi bölümden bölüme sallanıyordu; sabit mesafe (serbestteki ilk bölümlerin görünümü) */
+  const goalDist=((gameMode==='puzzle'&&!zoomOff)?Math.min(fitD,18.5):Math.min(zoomOff?1e9:20,fitD))*(pageOpen?1.12:1);
   camDist+=(goalDist-camDist)*(1-Math.exp(-dt*1.5));
   const yaw=Math.PI/4+Math.sin(now*.06)*.09,el=(50+Math.sin(now*.05+1)*1.5)*Math.PI/180;
   camera.position.set(camT.x+Math.sin(yaw)*Math.cos(el)*camDist,Math.sin(el)*camDist,camT.z+Math.cos(yaw)*Math.cos(el)*camDist);
