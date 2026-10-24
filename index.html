@@ -124,6 +124,19 @@ body.nopad #hint{bottom:calc(36px + var(--sab))}
 .tgl i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#cfd9f5;transition:transform .25s ease,background .3s,box-shadow .3s}
 .tgl[aria-checked=true]{background:linear-gradient(90deg,#4de3c1,#62c8ff);border-color:transparent}
 .tgl[aria-checked=true] i{transform:translateX(22px);background:#eafff8;box-shadow:0 0 12px rgba(125,255,208,.6)}
+/* ---- TEST PATCH ---- */
+#pgTest{display:flex;background:rgba(4,8,20,.5);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+#pgTest .pop-in{margin:auto;width:100%;max-width:340px}
+#pgTest .pop-card{border-radius:26px;padding:12px 20px 22px;box-shadow:0 18px 60px rgba(0,0,10,.45)}
+#pgTest .pg-head{gap:14px;padding:6px 0 16px}
+#pgTest .pg-head h2{font-size:13px;letter-spacing:.24em}
+.tpi{padding-top:16px}.tpi+.tpi{margin-top:16px;border-top:1px solid var(--edge)}
+.tpi .tgl-row span{display:flex;align-items:center;gap:8px}
+.tptag{font-size:9px;letter-spacing:.16em;padding:3px 8px;border-radius:99px;border:1px solid rgba(255,200,120,.45);color:#ffd9a0;background:rgba(255,190,100,.1)}
+#tpChip{position:absolute;left:16px;top:104px;z-index:5;pointer-events:auto;display:none;align-items:center;gap:9px;padding:8px 15px 8px 12px;border-radius:999px;color:#ffe2b0;border-color:rgba(255,200,120,.4);font:inherit;font-size:10.5px;letter-spacing:.2em;cursor:pointer;transition:transform .15s ease,opacity .5s}
+#tpChip.show{display:flex}#tpChip:active{transform:scale(.95)}
+#tpChip i{display:block;width:7px;height:7px;border-radius:50%;background:#ffc87a;box-shadow:0 0 10px #ffb85c}
+body.paged #tpChip{opacity:0;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.page,.page.open,.rise,.page.open .rise,.pg-head .rule{transition-duration:.01s!important;transition-delay:0s!important}}
 </style>
 </head>
@@ -181,6 +194,11 @@ body.nopad #hint{bottom:calc(36px + var(--sab))}
       <button class="glass back" data-back aria-label="Geri"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
       <h2>GELİŞMİŞ</h2><i class="rule"></i>
     </header>
+    <div class="card glass rise" style="--i:1">
+      <div class="row"><span class="lab">TEST PATCH</span></div>
+      <p class="note">Yeni eklenen mekanikler burada listelenir. Butona basınca oyun test moduyla açılır; listeden istediğin mekanikleri açıp kapatabilirsin.</p>
+      <button class="btn glass" id="tpOpen" type="button">Test Patch</button>
+    </div>
     <div id="devSections"></div>
     <div class="empty rise" id="devEmpty" style="--i:1">
       <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 5l-3 14"/></svg>
@@ -194,6 +212,15 @@ body.nopad #hint{bottom:calc(36px + var(--sab))}
       <p class="note" id="safeNote" style="font-size:12px"></p>
     </div>
   </div>
+</section>
+
+<section class="page" id="pgTest" aria-hidden="true">
+  <div class="pop-in"><div class="pop-card glass rise" style="--i:0">
+    <header class="pg-head rise" style="--i:1"><button class="glass back" type="button" id="tpBack" aria-label="Geri"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><h2>TEST PATCH</h2><i class="rule"></i></header>
+    <div id="tpList"></div>
+    <p class="note" id="tpEmpty" style="display:none">Henüz test edilecek mekanik yok.</p>
+    <button class="btn glass" id="tpExit" type="button" style="width:100%">Test Patch'ten çık</button>
+  </div></div>
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -333,7 +360,9 @@ const REALMS=[
  {name:'KRİSTAL BUZ',sky:[0x1f4a6a,0x0a2238,0x030a14],star:.90,starC:0xffffff,aur:[0x62e8ff,0xa8c8ff],aurK:1.1,moon:0xf0ffff,deep:0x041420,far:0x0c2a40,fog:0x0c2438,fogD:.016,clear:0x040e1a,hemi:[0xa0e0ff,0x102a40],moonL:0xd8f4ff,fillL:0x4a90c0,top:[.55,.40,.34],side:[.56,.36,.20],ff:[0xc8f4ff,0xffffff],
   aud:{root:67,degs:[0,2,4,7,9],ch:[[40,52,55,59,62],[36,52,55,59,64],[38,50,57,62,64],[35,50,54,57,62]],cut:1300,windG:.02,windF:520,chime:[3000,4500],chordMs:12500}},
  {name:'KOZMOS',sky:[0x2b1d44,0x0b0818,0x010105],star:.91,starC:0xfff0c8,aur:[0xffd060,0x9a6aff],aurK:1.3,moon:0xfff4d0,deep:0x050310,far:0x120a22,fog:0x0e0820,fogD:.014,clear:0x030208,hemi:[0xc0a0ff,0x140a28],moonL:0xe8d8ff,fillL:0x6a50b0,top:[.70,.30,.26],side:[.70,.28,.14],ff:[0xffd870,0xc090ff],
-  aud:{root:60,degs:[0,2,3,7,8],ch:[[36,43,51,58,62],[32,48,51,55,60],[29,48,53,56,60],[31,43,50,55,60]],cut:700,windG:.04,windF:340,chime:[6000,9000],chordMs:16000}}
+  aud:{root:60,degs:[0,2,3,7,8],ch:[[36,43,51,58,62],[32,48,51,55,60],[29,48,53,56,60],[31,43,50,55,60]],cut:700,windG:.04,windF:340,chime:[6000,9000],chordMs:16000}},
+ {name:'DİNGİNLİK',sky:[0xff9a78,0xa04a8a,0x1a1244],star:.985,starC:0xffe6d8,aur:[0xff8aa8,0xa88aff],aurK:.55,moon:0xffb892,deep:0x120a24,far:0x2a1c44,fog:0x2a1a40,fogD:.016,clear:0x100820,hemi:[0xc09aff,0x2a1838],moonL:0xffc09a,fillL:0x6a5ac0,top:[.78,.20,.34],side:[.74,.22,.17],ff:[0xffc08a,0xd8a0ff],
+  aud:{root:50,degs:[0,3,5,7,10],ch:[[38,50,57,62,65],[43,50,55,62,67],[45,52,57,64,69],[41,53,57,60,65]],cut:900,windG:0,windF:400,chime:[9000,9000],chordMs:20000,calm:true,voice:'hand',mel:{step:.95,vel:1}}}
 ];
 const _C=()=>new THREE.Color();
 const LOOK={sky0:_C(),sky1:_C(),sky2:_C(),starC:_C(),aur0:_C(),aur1:_C(),moon:_C(),deep:_C(),far:_C(),fog:_C(),clear:_C(),hemiS:_C(),hemiG:_C(),moonL:_C(),fillL:_C(),top:_C(),side:_C(),ff0:_C(),ff1:_C(),starT:.95,aurK:1,fogD:.016};
@@ -528,6 +557,10 @@ function dipOf(tile){ /* küp karonun üstündeyken karo hafifçe suya batar */
   const d=Math.hypot(cubeGroup.position.x-tile.x,cubeGroup.position.z-tile.z);
   return Math.max(0,1-d/.95);
 }
+/* yüksek karolar: tile.hh = karonun şu anki ekstra yüksekliği (modül yazar, çekirdek okur) */
+const topOf=t=>t?t.root.position.y+(t.hh||0):0;
+const DUST=new THREE.Color(),WHT=new THREE.Color(1,1,1);
+const dustCol=()=>DUST.copy(LOOK.top).lerp(WHT,.55);
 function createTile(x,z,t0){
   const tile={x,z,key:key(x,z),y:-3,state:'rise',t0:t0,tS:0,lit:false,litv:0,litCol:new THREE.Color(),pulseT:-9,target:null,fx:null,phase:Math.random()*TAU};
   tile.dh=(Math.random()-.5)*.03;tile.dl=(Math.random()-.5)*.03;const topC=new THREE.Color().copy(LOOK.top).offsetHSL(tile.dh,0,tile.dl);
@@ -615,6 +648,7 @@ function updateFx(dt){
     fx.dm.opacity=Math.min(1,(fx.k*(.45+.35*br)+fx.nope*.55)*unl);
     fx.gm.opacity=fx.k*(.05*unl*(.6+.4*br)+.24*fx.lv*(.85+.15*br))+fx.nope*.15*unl;
     fx.lm.opacity=fx.k*fx.lv*(.9+.1*br);
+    const th=fx.tile.hh||0;fx.d.position.y=.016+th;fx.g.position.y=.02+th;fx.l.position.y=.022+th;
     const pp=now-fx.popT;
     const sc=1+((pp>=0&&pp<.7)?.4*Math.sin(pp/.7*Math.PI):0);
     fx.d.scale.set(sc,sc,sc);fx.l.scale.set(sc,sc,sc);
@@ -652,10 +686,10 @@ let forcedRealm=-1,curRealm=-1,lookUntil=0;
 let pageOpen=false,curPage=null;
 let roll=null,pending=null,landT=-9,cubeSpawnT=Infinity,cubeLanded=false,lastMoveT=0;
 let history=[];
-let noteIdx=4;
+let noteIdx=4,landAmp=1;
 
 /* ---- audio ---- */
-let ac=null,master=null,dryBus=null,revBus=null,noiseBuf=null,muted=false,padOsc=[];
+let padG=null,windMod=null,ac=null,master=null,dryBus=null,revBus=null,noiseBuf=null,muted=false,padOsc=[];
 function loadVol(){try{const v=parseFloat(localStorage.getItem('kup.vol'));return isFinite(v)?clamp(v,0,1):1;}catch(e){return 1;}}
 let vol=loadVol();
 const masterTarget=()=>muted?0:.8*vol*vol; /* kare eğri: kaydırıcı kulağa daha doğal gelir */
@@ -694,13 +728,13 @@ function thump(vel){
   const ng=ac.createGain();env(ng,t,.002,.1*vel,.06);n.connect(lp);lp.connect(ng);out(ng,.1);n.start(t,Math.random());n.stop(t+.1);
 }
 function scrape(){
-  if(!ac)return;const t=ac.currentTime;
+  if(!ac||AUD.voice)return;const t=ac.currentTime;
   const n=ac.createBufferSource();n.buffer=noiseBuf;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=.9;
   bp.frequency.setValueAtTime(900,t);bp.frequency.linearRampToValueAtTime(1500,t+.2);
   const g=ac.createGain();env(g,t,.05,.045,.2);n.connect(bp);bp.connect(g);out(g,.2);n.start(t,Math.random());n.stop(t+.35);
 }
 function drop(f,vel,when){
-  if(!ac)return;const t=ac.currentTime+(when||0);
+  if(!ac)return;if(AUD.voice)f=snapF(f);const t=ac.currentTime+(when||0);
   const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*1.9,t+.11);
   env(g,t,.004,.12*(vel==null?1:vel),.22);o.connect(g);out(g,.6);o.start(t);o.stop(t+.35);
 }
@@ -713,7 +747,7 @@ function startAmbient(){
   const t=ac.currentTime;
   const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=AUD.cut;lp.Q.value=.4;padLP=lp;
   const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=.045;lg.gain.value=260;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
-  const pg=ac.createGain();pg.gain.value=0;pg.gain.setTargetAtTime(.17,t,4);lp.connect(pg);out(pg,.8);
+  const pg=ac.createGain();pg.gain.value=0;pg.gain.setTargetAtTime(AUD.calm?0:.17,t,4);padG=pg;lp.connect(pg);out(pg,.8);
   CH[chordI].forEach((m,i)=>{
     [['sine',-5,1],['triangle',6,.45]].forEach(v=>{
       const o=ac.createOscillator(),g=ac.createGain();o.type=v[0];o.detune.value=v[1];o.frequency.value=mtof(m);
@@ -725,15 +759,36 @@ function startAmbient(){
   const wbp=ac.createBiquadFilter();wbp.type='bandpass';wbp.frequency.value=AUD.windF;wbp.Q.value=.7;windBP=wbp;
   const wg=ac.createGain();wg.gain.value=AUD.windG;windG=wg;
   const wl=ac.createOscillator(),wlg=ac.createGain();wl.frequency.value=.08;wlg.gain.value=170;wl.connect(wlg);wlg.connect(wbp.frequency);wl.start();
-  const wl2=ac.createOscillator(),wl2g=ac.createGain();wl2.frequency.value=.05;wl2g.gain.value=.02;wl2.connect(wl2g);wl2g.connect(wg.gain);wl2.start();
+  const wl2=ac.createOscillator(),wl2g=ac.createGain();wl2.frequency.value=.05;wl2g.gain.value=.02;wl2.connect(wl2g);wl2g.connect(wg.gain);wl2.start();windMod=wl2g;if(!(AUD.windG>0))wl2g.gain.value=0;
   wn.connect(wbp);wbp.connect(wg);out(wg,.3);wn.start();
   (function chime(){
     later(AUD.chime[0]+Math.random()*AUD.chime[1],()=>{
-      if(ac&&!muted&&ac.state==='running'&&state!=='intro')pluck(SCALE[(Math.random()*SCALE.length)|0]+(Math.random()<.3?12:0),.22,0,.95);
+      if(ac&&!muted&&ac.state==='running'&&state!=='intro'&&!AUD.voice)pluck(SCALE[(Math.random()*SCALE.length)|0]+(Math.random()<.3?12:0),.22,0,.95);
       chime();
     });
   })();
 }
+function snapF(f){ /* su damlası vb. en yakın ölçek notasına oturur */
+  const m=69+12*Math.log2(f/440);let best=SCALE[0],bd=1e9;
+  for(let k=-1;k<=3;k++)SCALE.forEach(s=>{const c=s+12*k,dd=Math.abs(c-m);if(dd<bd){bd=dd;best=c;}});
+  return mtof(best);
+}
+function handNote(m,vel,when,wet){ /* handpan benzeri: dolgun gövde + kısa "tok" vuruş, ince/tiz bileşen yok */
+  if(!ac)return;vel=vel==null?1:vel;
+  const t=ac.currentTime+(when||0),f=mtof(m),bus=ac.createGain();
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=Math.min(3600,f*6);lp.Q.value=.3;
+  lp.connect(bus);out(bus,wet==null?.5:wet);
+  const low=f<140?1.6:1; /* alçak notada telefon hoparlöründe de duyulsun */
+  [[1,1,2.6],[2,.45*low,1.6],[3.01,.12,.9]].forEach(a=>{
+    const o=ac.createOscillator(),g=ac.createGain();o.type='sine';
+    o.frequency.setValueAtTime(f*a[0]*1.014,t);o.frequency.exponentialRampToValueAtTime(f*a[0],t+.07);
+    env(g,t,.005,.13*a[1]*vel,a[2]);o.connect(g);g.connect(lp);o.start(t);o.stop(t+a[2]+.1);
+  });
+  const th=ac.createOscillator(),tg=ac.createGain();th.type='sine';
+  th.frequency.setValueAtTime(f*.5,t);th.frequency.exponentialRampToValueAtTime(Math.max(40,f*.3),t+.09);
+  env(tg,t,.002,.16*vel,.1);th.connect(tg);tg.connect(bus);th.start(t);th.stop(t+.2);
+}
+function voiceNote(m,vel,when){handNote(m,vel,when);}
 function initAudio(){
   if(ac){if(ac.state==='suspended')ac.resume();return;}
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
@@ -780,7 +835,7 @@ function sfxLand(d){
   const fwd=(d.k==='e'||d.k==='s')?1:-1,step=fwd*(Math.random()<.5?1:2);
   noteIdx+=step;if(noteIdx<0)noteIdx=-noteIdx;if(noteIdx>SCALE.length-1)noteIdx=2*(SCALE.length-1)-noteIdx;
   noteIdx=clamp(noteIdx,0,SCALE.length-1);
-  pluck(SCALE[noteIdx],.8,.02,.55);
+  if(AUD.voice)voiceNote(SCALE[noteIdx],.75,.02);else pluck(SCALE[noteIdx],.8,.02,.55);
 }
 
 /* ---- UI ---- */
@@ -887,6 +942,9 @@ function devLimits(){pruneIsland();computeBounds();}
    Her bölümde eski karolar batar (küpün durduğu karo hariç) ve ekranda YUKARI (ileri) doğru
    küçük bir "oda + koridor" düzeni yükselir: odalar, dönemeçli koridorlar, çıkmaz kollar.
    Hedefler çözülebilirlik (BFS) ve zorluk için denenerek seçilir. Geriye dönüş yok. */
+/* yükseklik kademesi: tile.lv (tam sayı, 1 kademe = .5 birim). Komşu karolar arasında en fazla 1 kademe fark varsa geçilir. */
+const STEPFX=false; /* true: yüksek karoda özel tırmanış/iniş efektleri (toz, halka, ses, ezilme). Varsayılan kapalı: diğer karolarla aynı yuvarlanma. */
+const canStep=(a,b)=>!a||!b||Math.abs((a.lv||0)-(b.lv||0))<=1;
 const hooks={targets:null,puzzle:null}; /* modüller hedef yerleşimini önceden planlayabilsin */
 let gameMode='free',puzzleHead=D.n;
 function setGameMode(m){gameMode=(m==='puzzle')?'puzzle':'free';}
@@ -954,8 +1012,8 @@ function buildPuzzleArea(){
   /* eski karoları batır */
   const old=[...tiles.values()].filter(t=>t!==start);
   old.sort((a,b)=>Math.hypot(a.x-cube.x,a.z-cube.z)-Math.hypot(b.x-cube.x,b.z-cube.z));
-  const oldKeys=new Set();let di=0,sinkEnd=now;
-  old.forEach(t=>{oldKeys.add(t.key);tiles.delete(t.key);t.state='sink';t.tS=now+di*.04;sinkEnd=Math.max(sinkEnd,t.tS+.9);di++;dying.push(t);});
+  const oldKeys=new Map();let di=0,sinkEnd=now;
+  old.forEach(t=>{tiles.delete(t.key);t.state='sink';t.tS=now+di*.04;oldKeys.set(t.key,t.tS+.9);sinkEnd=Math.max(sinkEnd,t.tS+.9);di++;dying.push(t);});
   /* ileri = ekranda yukarı: kuzey ya da batı, çoğunlukla dönüşümlü */
   puzzleHead=(Math.random()<.7)?(puzzleHead===D.n?D.w:D.n):puzzleHead;
   const F=puzzleHead,Lt={x:-F.z,z:F.x},sg=Math.random()<.5?1:-1;
@@ -965,7 +1023,7 @@ function buildPuzzleArea(){
     const x=cube.x+c[0]*F.x+c[1]*sg*Lt.x,z=cube.z+c[0]*F.z+c[1]*sg*Lt.z,k=key(x,z);
     if(tiles.has(k))return;
     let t0=now+.7+i*.07;i++;
-    if(oldKeys.has(k))t0=Math.max(t0,sinkEnd+.1); /* aynı konumda batan karo varsa bitmesini bekle */
+    if(oldKeys.has(k))t0=Math.max(t0,oldKeys.get(k)+.1); /* aynı konumda batan karo varsa yalnızca onun bitmesini bekle: hepsi aynı anda patlamasın */
     const t=createTile(x,z,t0);scheduleRiseSound(t);
   });
   computeBounds();
@@ -997,7 +1055,7 @@ function puzzleWant(L,n){const s=Math.min(1,(L-1)/45);return Math.round(2.5+n*(2
 function genTargetsPuzzle(n){
   const nodes=[...tiles.values()].filter(t=>t.state!=='sink');
   const idx=new Map(nodes.map((t,i)=>[t.key,i]));
-  const nb=nodes.map(t=>DIRS.map(d=>{const j=idx.get(key(t.x+d.x,t.z+d.z));return j===undefined?-1:j;}));
+  const nb=nodes.map(t=>DIRS.map(d=>{const j=idx.get(key(t.x+d.x,t.z+d.z));return (j===undefined||!canStep(t,nodes[j]))?-1:j;}));
   const oMap=new Map(),list=[],nx=[];
   const oc={list:list,
     id(f){const k=f.down*6+f.n;let i=oMap.get(k);if(i===undefined){i=list.length;oMap.set(k,i);list.push(f);nx.push([-1,-1,-1,-1]);}return i;},
@@ -1046,6 +1104,8 @@ function devSkipLevel(){
   if(state!=='play'||roll)return false;
   state='trans';pending=null;nextLevel();return true;
 }
+/* henüz yükselmekte olan karoların bitmesine kalan süre (ms): oyun bunlar bitmeden başlamasın, küp yarım yükselmiş karoya çarpıp takılmasın */
+function riseWaitMs(){let m=0;tiles.forEach(t=>{if(t.state==='rise'&&isFinite(t.t0))m=Math.max(m,t.t0+1-now);});return Math.min(8000,Math.max(0,m*1000));}
 function scheduleRiseSound(tile){
   const ms=Math.max(0,(tile.t0-now)*1000)+400;
   later(ms,()=>{
@@ -1059,7 +1119,7 @@ function genTargets(n){
   const minSteps=2;
   let steps=0,guard=0;
   while(res.length<n&&guard++<600){
-    const opts=DIRS.filter(d=>{const t=tiles.get(key(s.x+d.x,s.z+d.z));return t&&t.state!=='sink';});
+    const cs=tiles.get(key(s.x,s.z));const opts=DIRS.filter(d=>{const t=tiles.get(key(s.x+d.x,s.z+d.z));return t&&t.state!=='sink'&&canStep(cs,t);});
     if(!opts.length)break;
     const d=opts[(Math.random()*opts.length)|0];
     s={x:s.x+d.x,z:s.z+d.z,f:rollState(s.f,d)};steps++;
@@ -1093,8 +1153,10 @@ function placeTargets(){
 function startRoll(d,undo,bump){
   const tile=tiles.get(key(cube.x,cube.z));
   if(!bump)emit('leave',{x:cube.x,z:cube.z,dx:d.x,dz:d.z,undo:!!undo});
-  roll={d:d,x:cube.x,z:cube.z,t0:now,dur:bump?.3:.26,q0:cubeMesh.quaternion.clone(),axis:new THREE.Vector3(d.z,0,-d.x),undo:!!undo,bump:!!bump,baseY:tile?tile.root.position.y:0};
-  if(!bump)scrape();
+  const t2=bump?null:tiles.get(key(cube.x+d.x,cube.z+d.z));
+  const dh=bump?0:((t2?(t2.hh||0):0)-(tile?(tile.hh||0):0)),step=Math.abs(dh)>.01;
+  roll={d:d,x:cube.x,z:cube.z,t0:now,dur:bump?.3:.26+(STEPFX&&step?(dh>0?.08:.07):0),q0:cubeMesh.quaternion.clone(),axis:new THREE.Vector3(d.z,0,-d.x),undo:!!undo,bump:!!bump,baseY:topOf(tile),dh:step?dh:0};
+  if(!bump){scrape();if(step&&STEPFX)stepStartFx(d,topOf(tile),dh>0);}
 }
 function tryMove(d){
   if(state!=='play'||pageOpen)return;
@@ -1102,14 +1164,24 @@ function tryMove(d){
   const t=tiles.get(key(cube.x+d.x,cube.z+d.z));
   lastMoveT=now;
   if(!t||t.root.position.y<-.35){startRoll(d,false,true);if(ac){thump(.25);lowTone();}return;}
+  if(!canStep(tiles.get(key(cube.x,cube.z)),t)){ /* uçurum: çok yüksek, çıkılamaz ya da atlanamaz */
+    startRoll(d,false,true);cliffFx(d,t);return;
+  }
   startRoll(d,false,false);
+}
+function cliffFx(d,t){
+  const c=dustCol(),by=topOf(tiles.get(key(cube.x,cube.z)));
+  for(let i=0;i<5;i++){const w=(Math.random()-.5)*.6;spawn(cube.x+d.x*.5+(d.z?w:0),by+.06,cube.z+d.z*.5+(d.x?w:0),-d.x*.12,.12+Math.random()*.15,-d.z*.12,c,.035,.5,.4);}
+  if(ac){thump(.4);lowTone();}
+  if(navigator.vibrate){try{navigator.vibrate(12);}catch(e){}}
+  if(t){t.pulseT=now;}
 }
 function resetPlay(sx,sz,sf,sq){ /* kırılan karolar modülü için: seviyeyi başlangıç durumuna döndür */
   roll=null;pending=null;history=[];state='trans';
   cube.x=sx;cube.z=sz;cube.f={up:sf.up,down:sf.down,e:sf.e,w:sf.w,s:sf.s,n:sf.n};cubeMesh.quaternion.copy(sq);
   targets.forEach(t=>{t.lit=false;if(t.fx){t.fx.lit=false;t.fx.dm.map=TEX.out[t.fx.face];}});
-  updateDots();updatePad();lastMoveT=now;landT=now;addRipple(sx,sz,.9);
-  later(1000,()=>{if(state==='trans')state='play';});
+  updateDots();updatePad();lastMoveT=now;landT=now;addRipple(sx,sz,.9);landAmp=1;
+  later(Math.max(1000,riseWaitMs()+250),()=>{if(state==='trans')state='play';});
 }
 function undo(){
   if(state!=='play'||pageOpen||roll||!history.length)return;
@@ -1131,7 +1203,9 @@ function onLand(r){
   emit('land',{x:cube.x,z:cube.z,face:cube.f.down,undo:r.undo});
   if(navigator.vibrate){try{navigator.vibrate(8);}catch(e){}}
   const c=PALN[cube.f.down];
-  for(let i=0;i<5;i++){const a=Math.random()*TAU;spawn(cube.x,.05,cube.z,Math.cos(a)*.5,.2,Math.sin(a)*.5,c,.06,.6,0);}
+  const ty=topOf(tile);
+  for(let i=0;i<5;i++){const a=Math.random()*TAU;spawn(cube.x,ty+.05,cube.z,Math.cos(a)*.5,.2,Math.sin(a)*.5,c,.06,.6,0);}
+  if(r.dh&&STEPFX)stepLandFx(r.dh,ty);
   if(r.undo){updatePad();return;}
   history.push({d:r.d,unlocked:null});
   hideHint();
@@ -1141,12 +1215,42 @@ function onLand(r){
   }
   updatePad();
 }
+/* ---- basamak efektleri (yüksek karo): başlangıç tozu + iniş darbesi ---- */
+function stepStartFx(d,by,up){
+  const c=dustCol(),ex=cube.x+d.x*.5,ez=cube.z+d.z*.5;
+  /* karonun kenarı boyunca (yöne dik) dizilen toz: tırmanışta duvar dibinden fışkırır, inişte kenardan dökülür */
+  const n=up?10:6;
+  for(let i=0;i<n;i++){
+    const w=(i/(n-1)-.5)*.74+(Math.random()-.5)*.08;
+    const px=ex+(d.z?w:0)+d.x*(up?-.02:.04),pz=ez+(d.x?w:0)+d.z*(up?-.02:.04);
+    const sp=up?.18+Math.random()*.2:.1+Math.random()*.15;
+    spawn(px,by+.04,pz,d.x*sp*(up?-.6:1)+(d.z?w*.25:0),(up?.3:.15)+Math.random()*.3,d.z*sp*(up?-.6:1)+(d.x?w*.25:0),c,.04+Math.random()*.03,.7+Math.random()*.3,.5);
+  }
+  if(up&&ac){const t=ac.currentTime;
+    const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(330,t+.16);
+    env(g,t,.01,.07,.2);o.connect(g);out(g,.3);o.start(t);o.stop(t+.3);}
+}
+function stepLandFx(dh,ty){
+  const up=dh>0,c=dustCol();
+  ringBurst(cube.x,ty+.04,cube.z,c,up?16:24,up?.9:1.35,up?.07:.085);
+  ringBurst(cube.x,ty+.05,cube.z,WHT,up?8:12,up?.45:.7,.045); /* iç ince parlak halka */
+  sparkBurst(cube.x,ty+.1,cube.z,c,up?7:13);
+  if(!up){addRipple(cube.x,cube.z,1.1);
+    /* yüksek kenarın dibinde kalkan toz bulutu */
+    for(let i=0;i<10;i++){const a=Math.random()*TAU;spawn(cube.x+Math.cos(a)*.35,ty+.06,cube.z+Math.sin(a)*.35,Math.cos(a)*.55,.12+Math.random()*.2,Math.sin(a)*.55,c,.06+Math.random()*.03,.9,.4);}
+  }
+  if(ac){
+    if(up){thump(.55);drop(560,.45,.02);pluck(SCALE[clamp(noteIdx+2,0,SCALE.length-1)],.55,.08,.6);pluck(SCALE[clamp(noteIdx+4,0,SCALE.length-1)],.3,.16,.7);}
+    else{thump(.9);lowTone();drop(260,.4,.03);}
+  }
+  if(navigator.vibrate){try{navigator.vibrate(up?[6,18,10]:[16]);}catch(e){}}
+}
 function unlock(tile){
   const face=tile.target.face,col=PALN[face];
   tile.lit=true;tile.litCol.copy(col);
   tile.fx.lit=true;tile.fx.popT=now;
   history[history.length-1].unlocked=tile;
-  const y=tile.root.position.y;
+  const y=topOf(tile);
   ringBurst(tile.x,y+.05,tile.z,col,28,1.7,.1);
   sparkBurst(tile.x,y+.1,tile.z,col,18);
   addRipple(tile.x,tile.z,1.3);
@@ -1160,7 +1264,7 @@ function finishRoll(){
   if(r.bump)return;
   snapQuat(cubeMesh.quaternion);
   cube.f=rollState(cube.f,r.d);cube.x=r.x+r.d.x;cube.z=r.z+r.d.z;
-  landT=now;
+  landT=now;landAmp=STEPFX?(r.dh>.01?1.35:(r.dh<-.01?1.8:1)):1;
   onLand(r);
   if(pending){const p=pending;pending=null;tryMove(p);}
 }
@@ -1178,8 +1282,8 @@ function nextLevel(){
   targets.forEach(t=>{if(t.fx)t.fx.mode='out';t.lit=false;t.target=null;t.fx=null;});
   targets=[];history=[];buildDots();
   if(gameMode==='puzzle')buildPuzzleArea();else growIsland();
-  emit('grown',{level:level});
-  later(1700,()=>{placeTargets();state='play';});
+  emit('prepare',{level:level});emit('grown',{level:level});
+  later(Math.max(1700,riseWaitMs()+250),()=>{placeTargets();state='play';});
 }
 
 /* ---- input ---- */
@@ -1256,6 +1360,59 @@ function closePage(){
 }
 $('btnSet').addEventListener('click',()=>openPage('pgSet'));
 $('btnDev').addEventListener('click',()=>openPage('pgDev'));
+
+/* ---- TEST PATCH: yeni mekanikleri oyunda denemek için ----
+   Mekanik eklemek: KUP.addTestMechanic({id, label, note, tag, apply(açıkMı){...}})
+   apply, Test Patch açıkken ve anahtar açıkken true, aksi halde false ile çağrılır. */
+const tpMechs=[];let tpActive=false,tpChip=null;
+const tpOn=m=>devStore.get('tp.'+m.id,false)===true;
+function tpApply(m){try{m.apply&&m.apply(tpActive&&tpOn(m));}catch(e){console.warn('[KUP] test mekaniği',e);}}
+function tpPlace(){
+  if(!tpChip)return;const l=$('lvl'),ui=$('ui');if(!l||!ui)return;
+  const ur=ui.getBoundingClientRect(),r=l.getBoundingClientRect();
+  tpChip.style.left=Math.round(r.left-ur.left)+'px';
+  /* "Aktif özellikler" butonu görünürse onun altına, değilse (bulmaca) onun yerine */
+  const fb=$('featBtn'),fv=fb&&getComputedStyle(fb).display!=='none';
+  tpChip.style.top=Math.round(r.bottom-ur.top+10+(fv?38:0))+'px';
+}
+function tpPaint(){
+  tpMechs.forEach(o=>o.b.setAttribute('aria-checked',tpOn(o.m)?'true':'false'));
+  if(tpChip){tpChip.classList.toggle('show',tpActive);tpPlace();}
+  $('tpEmpty').style.display=tpMechs.length?'none':'';
+}
+function addTestMechanic(m){
+  const el=document.createElement('div');el.className='tpi';
+  const row=document.createElement('div');row.className='tgl-row';
+  const sp=document.createElement('span');sp.textContent=m.label||m.id;
+  if(m.tag){const tg=document.createElement('em');tg.className='tptag';tg.style.fontStyle='normal';tg.textContent=m.tag;sp.appendChild(tg);}
+  const b=document.createElement('button');b.className='tgl';b.type='button';b.setAttribute('role','switch');b.setAttribute('aria-label',m.label||m.id);
+  b.appendChild(document.createElement('i'));
+  b.addEventListener('click',()=>{devStore.set('tp.'+m.id,!tpOn(m));tpApply(m);tpPaint();if(ac&&!muted)pluck(SCALE[tpOn(m)?5:3],.25,0,.6);});
+  row.appendChild(sp);row.appendChild(b);el.appendChild(row);
+  if(m.note){const n=document.createElement('p');n.className='note';n.textContent=m.note;el.appendChild(n);}
+  (m.actions||[]).forEach(a=>{
+    const bt=document.createElement('button');bt.className='btn glass';bt.type='button';bt.textContent=a.label;bt.style.cssText='margin-top:12px;width:100%';
+    bt.addEventListener('click',()=>{
+      if(!(tpActive&&tpOn(m))){toast('Önce anahtarı aç');return;}
+      try{a.run();}catch(e){console.warn('[KUP] test eylemi',e);}
+      if(ac&&!muted)pluck(SCALE[5],.25,0,.6);
+    });
+    el.appendChild(bt);
+  });
+  $('tpList').appendChild(el);tpMechs.push({m,b});tpApply(m);tpPaint();
+}
+function tpSet(v){tpActive=v;tpMechs.forEach(o=>tpApply(o.m));tpPaint();}
+function tpReset(){tpSet(false);}
+(function(){
+  tpChip=document.createElement('button');tpChip.id='tpChip';tpChip.className='glass';tpChip.type='button';
+  tpChip.innerHTML='<i></i><span>TEST PATCH</span>';$('ui').appendChild(tpChip);
+  window.addEventListener('resize',tpPlace);setInterval(tpPlace,500);
+  $('tpOpen').addEventListener('click',()=>{closePage();tpSet(true);openPage('pgTest');toast('Test Patch açık');});
+  tpChip.addEventListener('click',()=>openPage('pgTest'));
+  $('tpBack').addEventListener('click',closePage);
+  $('pgTest').addEventListener('click',e=>{if(e.target===$('pgTest'))closePage();});
+  $('tpExit').addEventListener('click',()=>{tpSet(false);closePage();toast('Test Patch kapandı');});
+})();
 document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',closePage));
 
 /* ---- ses ayarı ---- */
@@ -1292,7 +1449,7 @@ function addDevSection(sec){
     }
     if(b.classList.contains('done'))return;
     clearTimeout(t);
-    devStore.clear();devSecs.forEach(s=>{try{s.onReset&&s.onReset();}catch(e){console.warn('[KUP]',e);}});emit('devreset');
+    devStore.clear();devSecs.forEach(s=>{try{s.onReset&&s.onReset();}catch(e){console.warn('[KUP]',e);}});try{tpReset();}catch(e){}emit('devreset');
     b.classList.remove('armed');b.classList.add('done');b.textContent='Sıfırlandı ✓';
     if(ac&&!muted)pluck(SCALE[6],.35,0,.6);
     t=later(1800,()=>{b.classList.remove('done');b.textContent=DEF;});
@@ -1466,10 +1623,10 @@ window.KUP=Object.freeze({
   version:'1.1',safe:SAFE,
   on(ev,fn){(KL[ev]=KL[ev]||[]).push(fn);},
   off(ev,fn){KL[ev]=(KL[ev]||[]).filter(f=>f!==fn);},
-  store:devStore,addDevSection:addDevSection,toast:toast,openPage:openPage,closePage:closePage,
+  store:devStore,addDevSection:addDevSection,addTestMechanic:addTestMechanic,toast:toast,openPage:openPage,closePage:closePage,
   getState(){return{level:level,state:state,cube:{x:cube.x,z:cube.z,down:cube.f.down},targets:targets.length,lit:targets.filter(t=>t.lit).length};},
   audio:{get volume(){return vol;},get muted(){return muted;}},
-  core:Object.freeze({puzzleTargets:()=>genTargetsPuzzle(Math.min(puzzleN(level),tiles.size-1)),THREE,tiles,dying,vacated,hooks,applyTileColor,createTile,resetPlay,cubeMesh,foamRoot,sideMat,sideMatM,WATER_Y,FOAM_Y,addRipple,spawn,cubeGroup,later,key,pluck,SCALE,out,env,drop,
+  core:Object.freeze({canStep,LOOK,PALN,ringBurst,sparkBurst,thump,lowTone,topOf,puzzleTargets:()=>genTargetsPuzzle(Math.min(puzzleN(level),tiles.size-1)),THREE,tiles,dying,vacated,hooks,applyTileColor,createTile,resetPlay,cubeMesh,foamRoot,sideMat,sideMatM,WATER_Y,FOAM_Y,addRipple,spawn,cubeGroup,later,key,pluck,SCALE,out,env,drop,
     get now(){return now;},get mode(){return gameMode;},get ac(){return ac;},get noiseBuf(){return noiseBuf;},get cube(){return cube;},get targets(){return targets;}})
 });
 
@@ -1490,6 +1647,8 @@ function applyRealm(snap){
     if(padLP)padLP.frequency.setTargetAtTime(AUD.cut+140*t,tt,3);
     if(windG)windG.gain.setTargetAtTime(AUD.windG,tt,3);
     if(windBP)windBP.frequency.setTargetAtTime(AUD.windF,tt,3);
+    if(windMod)windMod.gain.setTargetAtTime(AUD.windG>0?.02:0,tt,3);
+    if(padG)padG.gain.setTargetAtTime(AUD.calm?0:.17,tt,2.5);
   }
   return changed;
 }
@@ -1511,7 +1670,7 @@ function goFullscreen(){
 }
 function begin(){
   if(state!=='intro')return;
-  state='starting';emit('start');goFullscreen();
+  state='starting';emit('prepare');emit('start');goFullscreen();
   initAudio();
   $('intro').classList.add('gone');later(1600,()=>{$('intro').style.display='none';});
   $('ui').classList.add('ready');
@@ -1597,8 +1756,24 @@ function frame(ts){
       cubeMesh.quaternion.copy(qq).multiply(r.q0);
       tmpV.set(-r.d.x*S/2,S/2,-r.d.z*S/2).applyQuaternion(qq);
       const px=r.x+r.d.x*S/2,pz=r.z+r.d.z*S/2,corr=r.bump?0:(1-S)*a/HALF;
-      cubeGroup.scale.set(1,1,1);
-      cubeGroup.position.set(px+tmpV.x+r.d.x*corr,r.baseY+tmpV.y,pz+tmpV.z+r.d.z*corr);
+      /* basamak: tırmanış = pivot hızla yükselir (küp kenara "zıplar"), iniş = kenardan öne yatıp düşer */
+      let lift=0,lead=0,st=1;
+      if(!r.bump&&r.dh){
+        const dh=r.dh,k=Math.min(1,Math.abs(dh)/.5);
+        if(dh>0){
+          /* tırmanış: pivot kenara göre erken yükselir (duvara gömülmez); başka ek hareket yok */
+          const x=Math.min(1,e/.6),eo=1-(1-x)*(1-x)*(1-x);
+          lift=dh*eo;
+          if(STEPFX){lift+=.05*k*Math.sin(Math.PI*e);st=1+.05*k*Math.sin(Math.PI*e);}
+        }else{
+          const q=Math.min(1,Math.max(0,(e-.35)/.65)),qs=q*q*(3-2*q);
+          lift=dh*qs*q;
+          if(STEPFX){lead=.08*Math.sin(Math.min(1,e/.9)*Math.PI);st=1+.04*k*Math.sin(Math.PI*q);}
+        }
+      }
+      const sxx=1/Math.sqrt(st);
+      cubeGroup.scale.set(sxx,st,sxx);
+      cubeGroup.position.set(px+tmpV.x+r.d.x*(corr+lead),r.baseY+tmpV.y+lift,pz+tmpV.z+r.d.z*(corr+lead));
       if(u>=1)finishRoll();
     }else{
       let yOff=0;
@@ -1612,10 +1787,10 @@ function frame(ts){
         }
       }
       const tt=now-landT;let sy=1;
-      if(tt>=0&&tt<.7)sy=1-.16*Math.exp(-tt*10)*Math.cos(tt*26);
+      if(tt>=0&&tt<.7){const at=Math.min(1,tt/.06);sy=1-.16*landAmp*(at*at*(3-2*at))*Math.exp(-tt*9)*Math.cos(Math.max(0,tt-.02)*24);}
       const sx=1/Math.sqrt(sy);
       cubeGroup.scale.set(sx,sy,sx);
-      const base=curTile?curTile.root.position.y:0;
+      const base=topOf(curTile);
       cubeGroup.position.set(cube.x,base+S*sy/2+yOff,cube.z);
     }
   }
@@ -1737,7 +1912,7 @@ void main(){
       if(tile.fr0)return;tile.fr0=[tile.dh||0,tile.dl||0];tile.dh=tile.fr0[0]+TINT[0];tile.dl=tile.fr0[1]+TINT[1];C.applyTileColor(tile);
     }
     function makeIce(tile,data){
-      if(tile.fr||tile.target)return;tint(tile);
+      if(tile.fr||tile.target||tile.tl)return;tint(tile);
       const d=data||{ice:1,ph:rnd()};
       const mat=new T.ShaderMaterial({uniforms:{uTex:{value:iceTex()},uTime:ICE_TIME,uPh:{value:d.ph*6.283},uBoost:{value:0},uOp:{value:0}},
         vertexShader:ICE_VS,fragmentShader:ICE_FS,transparent:true,blending:T.AdditiveBlending,depthWrite:false,fog:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
@@ -1829,7 +2004,7 @@ void main(){
     function mkCtx(tgl){
       const tl=[...C.tiles.values()].filter(t=>t.state!=='sink'),idx=new Map();
       tl.forEach((t,i)=>idx.set(t.key,i));
-      const nb=tl.map(t=>MV.map(m=>{const j=idx.get(C.key(t.x+m[1],t.z+m[2]));return j===undefined?-1:j;}));
+      const nb=tl.map(t=>MV.map(m=>{const j=idx.get(C.key(t.x+m[1],t.z+m[2]));return (j===undefined||!C.canStep(t,tl[j]))?-1:j;}));
       const tb=new Int8Array(tl.length).fill(-1),tf=[];let nt=0,lm0=0,ok=true;
       const TL=tgl||C.targets.filter(t=>!t.lit).map(t=>({key:t.key,face:t.target.face}));
       TL.forEach(q=>{const i=idx.get(q.key);if(i===undefined){ok=false;return;}tb[i]=nt;tf[nt]=q.face;lm0|=1<<nt;nt++;});
@@ -2256,7 +2431,7 @@ body:not(.nopad) #fRetry{bottom:calc(214px + var(--sab))}
     function drawHint(h,now){
       let k=sm((now-h.t0)/.6);
       if(h.die>=0){const e=(now-h.die)/.55;if(e>=1)return false;k*=1-sm(e);}
-      const gy=(x,z)=>{const t=C.tiles.get(C.key(x,z));return t?t.root.position.y:0;},path=h.mode==='path';
+      const gy=(x,z)=>{const t=C.tiles.get(C.key(x,z));return t?t.root.position.y+(t.hh||0):0;},path=h.mode==='path';
       let act=0,lf=1;
       if(path){const tt=(now-h.t0)%h.cyc;act=tt/.5;lf=sm(tt/.4)*(1-sm((tt-(h.cyc-.8))/.6));}
       h.steps.forEach((s,i)=>{
@@ -2428,7 +2603,7 @@ void main(){
       o.type='sine';o.frequency.setValueAtTime(260,t);o.frequency.exponentialRampToValueAtTime(90,t+.5);C.env(g,t,.01,.22,.55);o.connect(g);C.out(g,.5);o.start(t);o.stop(t+.7);
       for(let i=0;i<4;i++)C.drop(500+rnd()*500,.07,.12+i*.11);}
     function makeIce(tile,data){
-      if(tile.fr||tile.target)return;tint(tile);
+      if(tile.fr||tile.target||tile.tl)return;tint(tile);
       const d=data||{ice:1,ph:rnd()};
       const mat=new T.ShaderMaterial({uniforms:{uTex:{value:iceTex()},uTime:ICE_TIME,uPh:{value:d.ph*6.283},uBoost:{value:0},uOp:{value:0}},
         vertexShader:ICE_VS,fragmentShader:ICE_FS,transparent:true,blending:T.AdditiveBlending,depthWrite:false,fog:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
@@ -2640,6 +2815,272 @@ void main(){
     });
 
   }catch(e){console.warn('[Dev modül hatası]',e);}
+})();
+
+/* ===== TEST PATCH MEKANİKLERİ — yeni mekanikler buraya eklenir ===== */
+(function(){
+  if(!window.KUP||KUP.safe||!KUP.addTestMechanic)return;
+
+  /* =====================================================================
+     YÜKSEK KAROLAR — bazı karolar diğerlerinden bir basamak yüksektir.
+     Çekirdek tarafı (küpün tırmanışı/inişi, iniş efektleri, hedef işaretleri) oyunun ana kodunda `tile.hh` üzerinden
+     çalışır; bu blok yalnızca karoların görünümünü, yükselme animasyonunu ve hangi karoların yükseleceğini yönetir.
+     Silinirse mekanik kalkar. Kırılgan (buz) karolarla çakışmaz: onlar yükseltilmez.
+     ===================================================================== */
+  try{
+    const C=KUP.core,T=C.THREE,rnd=Math.random;
+    const STEP=.5,GROW=.8;
+    const WHITE=new T.Color(1,1,1),_c=new T.Color(),_d=new T.Color();
+    const talls=new Set();
+    let enabled=false,lastSnd=-9,archive=KUP.store.get('tallArchive',false)===true;
+    const eob=u=>{const c1=1.15,c3=c1+1;return 1+c3*Math.pow(u-1,3)+c1*Math.pow(u-1,2);};
+    const eio=u=>u<.5?2*u*u:1-2*(1-u)*(1-u);
+    const dust=()=>_d.copy(C.LOOK.top).lerp(WHITE,.55);
+
+    /* ---- dokular: her kademe bir "kurs" (taş sırası): üstte ışık, aşağı süzülür; üstte içe gömülü ışıklı çerçeve ---- */
+    let WALL_TEX=null,RIM_TEX=null;
+    function wallTex(){
+      if(WALL_TEX)return WALL_TEX;
+      const cv=document.createElement('canvas');cv.width=64;cv.height=128;const x=cv.getContext('2d');
+      const g=x.createLinearGradient(0,0,0,128);
+      g.addColorStop(0,'rgba(255,255,255,.7)');g.addColorStop(.03,'rgba(255,255,255,.5)');g.addColorStop(.14,'rgba(255,255,255,.2)');g.addColorStop(.6,'rgba(255,255,255,.04)');g.addColorStop(1,'rgba(255,255,255,0)');
+      x.fillStyle=g;x.fillRect(0,0,64,128);
+      const gx=x.createLinearGradient(0,0,64,0);
+      gx.addColorStop(0,'rgba(255,255,255,.18)');gx.addColorStop(.12,'rgba(255,255,255,0)');gx.addColorStop(.88,'rgba(255,255,255,0)');gx.addColorStop(1,'rgba(255,255,255,.18)');
+      x.fillStyle=gx;x.fillRect(0,0,64,128);
+      const t=new T.CanvasTexture(cv);t.wrapT=T.RepeatWrapping;return WALL_TEX=t;
+    }
+    function rimTex(){
+      if(RIM_TEX)return RIM_TEX;
+      const N=128,cv=document.createElement('canvas');cv.width=cv.height=N;const x=cv.getContext('2d');
+      const a=N*.085,w=N*.83,r=N*.05;
+      x.shadowColor='rgba(255,255,255,1)';x.shadowBlur=N*.05;x.strokeStyle='rgba(255,255,255,.95)';x.lineWidth=N*.014;
+      x.beginPath();x.moveTo(a+r,a);x.arcTo(a+w,a,a+w,a+w,r);x.arcTo(a+w,a+w,a,a+w,r);x.arcTo(a,a+w,a,a,r);x.arcTo(a,a,a+w,a,r);x.closePath();x.stroke();
+      return RIM_TEX=new T.CanvasTexture(cv);
+    }
+    const wallGeo=new T.BoxGeometry(.946,1,.946).translate(0,-.5,0),rimGeo=new T.PlaneGeometry(.94,.94).rotateX(-Math.PI/2);
+    const HID=new T.MeshBasicMaterial({visible:false});
+    const addMat=map=>new T.MeshBasicMaterial({map,transparent:true,blending:T.AdditiveBlending,depthWrite:false,fog:false,opacity:0,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+
+    /* ---- sesler ---- */
+    function sfxGrind(lv){
+      const ac=C.ac;if(!ac||C.now-lastSnd<.1)return;lastSnd=C.now;
+      const t=ac.currentTime,n=ac.createBufferSource();n.buffer=C.noiseBuf;
+      const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.4;bp.frequency.setValueAtTime(200+lv*40,t);bp.frequency.exponentialRampToValueAtTime(560+lv*60,t+.6);
+      const g=ac.createGain();C.env(g,t,.1,.09,.6);n.connect(bp);bp.connect(g);C.out(g,.25);n.start(t,rnd());n.stop(t+.8);
+      const o=ac.createOscillator(),og=ac.createGain();o.type='sine';o.frequency.setValueAtTime(64+lv*6,t);o.frequency.linearRampToValueAtTime(90+lv*8,t+.7);
+      C.env(og,t,.12,.06,.7);o.connect(og);C.out(og,.2);o.start(t);o.stop(t+.9);
+    }
+    function riseFx(tile){
+      const tl=tile.tl,y=tile.root.position.y,c=dust();
+      for(let i=0;i<10;i++){const a=i/10*6.283+rnd()*.3;C.spawn(tile.x+Math.cos(a)*.42,y+.02,tile.z+Math.sin(a)*.42,Math.cos(a)*.45,.3+rnd()*.25,Math.sin(a)*.45,c,.05+rnd()*.03,.85,.8);}
+      C.addRipple(tile.x,tile.z,.6);sfxGrind(tl.lv);
+    }
+    function doneFx(tile){
+      const tl=tile.tl,y=tile.root.position.y+tl.lv*STEP+.05,c=dust();
+      tl.pulse=C.now;
+      C.ringBurst(tile.x,y,tile.z,c,16,1,.06);C.sparkBurst(tile.x,y+.05,tile.z,c,6);C.thump(.35+.08*tl.lv);
+    }
+
+    /* ---- karoya yükseklik görünümü ver / kaldır ---- */
+    function raise(tile,lv,delay){
+      const wt=wallTex().clone();wt.wrapT=T.RepeatWrapping;wt.needsUpdate=true;
+      const wm=addMat(wt),rm=addMat(rimTex()),sm=addMat(rimTex());
+      const wall=new T.Mesh(wallGeo,[wm,wm,HID,HID,wm,wm]),rim=new T.Mesh(rimGeo,rm),shock=new T.Mesh(rimGeo,sm);
+      wall.renderOrder=2;rim.renderOrder=3;shock.renderOrder=3;wall.visible=rim.visible=shock.visible=false;
+      tile.root.add(wall,rim,shock);
+      tile.tl={ph:rnd()*6.283,lv:lv,from:0,g0:C.now+delay,dly:delay,hh:0,pulse:-9,shT:-9,started:false,done:false,wall,rim,shock,wm,rm,sm,wt};
+      tile.lv=lv;
+      tile.tl0=[tile.dh||0,tile.dl||0];
+      tile.upd=upd;tile.cleanup=cleanup;talls.add(tile);
+    }
+    function setLevel(tile,lv,delay){
+      const tl=tile.tl;if(!tl||tl.lv===lv)return;
+      tl.lv=lv;tile.lv=lv;tl.from=tl.hh;tl.g0=C.now+delay;tl.dly=delay;tl.started=false;tl.done=false;
+    }
+    function strip(tile){
+      const tl=tile.tl;if(!tl)return;
+      tile.box.scale.y=1;tile.box.position.y=0;tile.boxM.scale.y=1;tile.boxM.position.y=0;
+      tile.root.remove(tl.wall,tl.rim,tl.shock);tl.wm.dispose();tl.rm.dispose();tl.sm.dispose();tl.wt.dispose();
+      tile.hh=0;tile.lv=0;
+      if(tile.tl0){tile.dh=tile.tl0[0];tile.dl=tile.tl0[1];tile.tl0=null;C.applyTileColor(tile);}
+      tile.tl=null;talls.delete(tile);
+      if(tile.upd===upd)tile.upd=null;if(tile.cleanup===cleanup)tile.cleanup=null;
+    }
+    function cleanup(tile){strip(tile);}
+    /* kapatma: tüm karolar yumuşakça alçalır; mantık (lv) hemen sıfırlanır */
+    function lowerAll(){[...talls].forEach(t=>{if(t.tl)setLevel(t,0,0);});}
+    function paint(tile,tl,hh,now){
+      tl.hh=hh;tile.hh=hh;
+      const s=(.5+hh)/.5;
+      tile.box.scale.y=s;tile.box.position.y=hh;tile.boxM.scale.y=s;tile.boxM.position.y=hh;
+      /* kademeye göre üst yüzey biraz daha açık */
+      const dl=tile.tl0[1]+(archive?.035*Math.min(1,hh/STEP*.9)+.02*Math.max(0,hh/STEP-1):0);
+      if(Math.abs(dl-(tile.dl||0))>.0004){tile.dl=dl;C.applyTileColor(tile);}
+      const vis=archive&&hh>.004;tl.wall.visible=tl.rim.visible=vis;
+      if(!vis){tl.shock.visible=false;return;}
+      const v=Math.min(1,hh/STEP);
+      tl.wall.scale.y=hh+.5;tl.wall.position.y=hh;tl.rim.position.y=hh+.004;
+      const n=(hh+.5)/.5;tl.wt.repeat.y=n;tl.wt.offset.y=1-n-.001;
+      const pu=now>=tl.pulse?Math.exp(-(now-tl.pulse)*2.4):0,br=.5+.5*Math.sin(now*1.3+tl.ph);
+      _c.copy(C.LOOK.top).lerp(WHITE,.55);tl.wm.color.copy(_c);tl.rm.color.copy(_c).lerp(WHITE,.25);
+      const fl=tl.g0!==undefined&&now>=tl.g0?Math.exp(-(now-tl.g0)*2.2):0;
+      tl.wm.opacity=v*(.5+.1*br+.5*pu+.7*fl);tl.rm.opacity=v*(.42+.2*br+.9*pu+.6*fl);
+      const sp=now-tl.shT;
+      if(sp>=0&&sp<.8){const u=sp/.8,k=1+.5*(1-Math.pow(1-u,3));tl.shock.visible=true;tl.shock.position.y=hh+.006;tl.shock.scale.set(k,1,k);
+        tl.sm.color.copy(_c).lerp(WHITE,.4);tl.sm.opacity=.75*(1-u)*(1-u);}
+      else tl.shock.visible=false;
+    }
+    function upd(tile){
+      const tl=tile.tl;if(!tl)return true;
+      const now=C.now,target=tl.lv*STEP;let hh=tl.hh;
+      if(tile.state!=='idle'){tl.g0=now+(tl.dly||0);paint(tile,tl,hh,now);return true;} /* karo daha yükselirken bekle */
+      const u=(now-tl.g0)/(GROW*(.75+.25*Math.min(3,Math.abs(target-tl.from)/STEP)));
+      if(u<0)hh=tl.from;
+      else{
+        const up=target>tl.from;
+        if(!tl.started){tl.started=true;if(up&&archive)riseFx(tile);}
+        if(u>=1){hh=target;if(!tl.done){tl.done=true;if(up&&archive)doneFx(tile);}}
+        else hh=tl.from+(target-tl.from)*(up?eob(u):eio(u));
+      }
+      paint(tile,tl,hh,now);
+      if(tl.lv===0&&tl.done&&hh<.004){strip(tile);return true;}
+      return true;
+    }
+
+    /* ---- yükseklik alanı: platolar, merdivenler (1 kademe/ karo), tırmanılamayan uçurumlar ---- */
+    const NB=[[1,0],[-1,0],[0,1],[0,-1]],K=C.key;
+    const maxTop=L=>L<2?1:(L<6?2:3);
+    function elig(t){return t&&!t.dead&&t.state!=='sink'&&!t.fr&&!t.target&&(!t.upd||t.tl);}
+    /* alan kuralı: kademeler komşular arası farkı 1'i geçmez (güvenli) ya da platolar uçurumla biter (merdiven yolu zorunlu) */
+    function field(safe){
+      const L=KUP.getState().level,all=[...C.tiles.values()].filter(t=>!t.dead&&t.state!=='sink');
+      if(all.length<6)return null;
+      const cb=C.tiles.get(K(C.cube.x,C.cube.z)),map=new Map(all.map(t=>[t.key,0]));
+      const pool=all.filter(t=>elig(t)&&t!==cb&&Math.abs(t.x-C.cube.x)+Math.abs(t.z-C.cube.z)>=2);
+      if(!pool.length)return null;
+      const top=maxTop(L),groups=all.length>=14&&L>=5?2:1,used=new Set();
+      const nbrs=(t)=>NB.map(o=>C.tiles.get(K(t.x+o[0],t.z+o[1]))).filter(q=>q&&!q.dead&&q.state!=='sink');
+      for(let g=0;g<groups;g++){
+        const seeds=pool.filter(t=>!used.has(t.key));if(!seeds.length)break;
+        const s0=seeds[(rnd()*seeds.length)|0];
+        const tg=g===0?top:Math.max(1,top-1+(rnd()<.5?1:0)),size=tg===1?1+((rnd()*3)|0):2+((rnd()*3)|0);
+        const reg=[s0],rs=new Set([s0.key]);
+        while(reg.length<size){
+          const cand=[];reg.forEach(r=>nbrs(r).forEach(q=>{if(!rs.has(q.key)&&!used.has(q.key)&&elig(q)&&q!==cb)cand.push(q);}));
+          if(!cand.length)break;const q=cand[(rnd()*cand.length)|0];reg.push(q);rs.add(q.key);
+        }
+        if(safe){ /* uçurum yok: uzaklığa göre yumuşak yamaç */
+          const dist=new Map(reg.map(r=>[r.key,0])),qq=reg.slice();
+          for(let h=0;h<qq.length;h++){const t=qq[h],dd=dist.get(t.key);if(dd>=tg)continue;nbrs(t).forEach(q=>{if(!dist.has(q.key)&&elig(q)&&q!==cb){dist.set(q.key,dd+1);qq.push(q);}});}
+          dist.forEach((dd,k)=>{map.set(k,Math.max(map.get(k)||0,tg-dd));used.add(k);});
+          continue;
+        }
+        reg.forEach(r=>{map.set(r.key,tg);used.add(r.key);});
+        /* merdiven: platodan dışarı doğru tg-1, ..., 1 kademeli karolar (mümkünse düz bir hat) */
+        if(tg>=2){
+          let cur=null,dir=null,ok=false;
+          const starts=[];reg.forEach(r=>nbrs(r).forEach(q=>{if(!rs.has(q.key)&&!used.has(q.key)&&elig(q)&&q!==cb)starts.push([r,q]);}));
+          for(let tryN=0;tryN<6&&!ok&&starts.length;tryN++){
+            const [r0,q0]=starts[(rnd()*starts.length)|0];
+            const path=[q0],seen=new Set([q0.key]);dir=[q0.x-r0.x,q0.z-r0.z];cur=q0;
+            while(path.length<tg-1){
+              let nx=C.tiles.get(K(cur.x+dir[0],cur.z+dir[1]));
+              if(!nx||seen.has(nx.key)||rs.has(nx.key)||used.has(nx.key)||!elig(nx)||nx===cb||rnd()<.25){
+                const alts=nbrs(cur).filter(q=>!seen.has(q.key)&&!rs.has(q.key)&&!used.has(q.key)&&elig(q)&&q!==cb);
+                nx=alts.length?alts[(rnd()*alts.length)|0]:null;
+              }
+              if(!nx)break;
+              dir=[nx.x-cur.x,nx.z-cur.z];path.push(nx);seen.add(nx.key);cur=nx;
+            }
+            if(path.length===tg-1){ok=true;path.forEach((q,i)=>{map.set(q.key,tg-1-i);used.add(q.key);});}
+          }
+          if(!ok){reg.forEach(r=>map.set(r.key,1));} /* merdiven kurulamadı: plato tek kademeye iner */
+        }
+      }
+      if(cb)map.set(cb.key,0);
+      /* bütün karolar küp noktasından geçilebilir mi? */
+      const seen=new Set([cb?cb.key:all[0].key]),q=[cb||all[0]];
+      for(let h=0;h<q.length;h++){const t=q[h];nbrs(t).forEach(n=>{if(seen.has(n.key))return;if(Math.abs((map.get(t.key)||0)-(map.get(n.key)||0))>1)return;seen.add(n.key);q.push(n);});}
+      if(seen.size!==all.length)return null;
+      return map;
+    }
+    function apply(map){
+      let k=0;
+      C.tiles.forEach(t=>{
+        if(t.dead||t.state==='sink')return;
+        const lv=map?map.get(t.key)||0:0,d=.07*lv+.04*((k++)%3);
+        if(t.tl)setLevel(t,lv,d);
+        else if(lv>0)raise(t,lv,d);
+      });
+    }
+    function plan(safe){
+      if(!enabled)return;
+      let map=null;
+      for(let i=0;i<14&&!map;i++)map=field(safe);
+      if(!map&&!safe)for(let i=0;i<10&&!map;i++)map=field(true); /* uçurumlu alan kurulamadıysa yumuşak yamaç */
+      apply(map);
+    }
+    /* başka bir modül karoyu sahiplenirse (ör. buz) ya da karo silinirse yüksekliği temizle */
+    setInterval(()=>{[...talls].forEach(t=>{if(t.dead||t.fr||t.upd!==upd)strip(t);});},500);
+
+    /* ---- ARŞİV: beyaz çizgili karo tasarımı (şu an oyunda kapalı) ----
+       Gelişmiş sayfasındaki anahtarla açılır: yüksek karolarda duvar kursları, parlak çerçeve, temas halkası ve yükselme efektleri;
+       yüksek olmayan karolarda ise yalnızca ışıklı üst çerçeve görünür. Silmek için: bu blok + dev bölümünü + `archive` kullanımlarını kaldır. */
+    const flat=new Map();let archRaf=0;
+    function flatRim(t){
+      const rm=addMat(rimTex()),m=new T.Mesh(rimGeo,rm);m.renderOrder=3;m.position.y=.004;t.root.add(m);flat.set(t,{m,rm});
+    }
+    function dropFlat(t){const o=flat.get(t);if(!o)return;if(o.m.parent)o.m.parent.remove(o.m);o.rm.dispose();flat.delete(t);}
+    function archTick(){
+      archRaf=0;if(!archive){[...flat.keys()].forEach(dropFlat);return;}
+      const now=C.now;
+      C.tiles.forEach(t=>{if(!t.dead&&t.state!=='sink'&&!t.tl&&!flat.has(t))flatRim(t);});
+      flat.forEach((o,t)=>{
+        if(t.tl||!t.root.parent||t.dead){dropFlat(t);return;}
+        const br=.5+.5*Math.sin(now*1.3+t.phase);
+        _c.copy(C.LOOK.top).lerp(WHITE,.8);o.rm.color.copy(_c);o.rm.opacity=.4+.2*br;
+      });
+      archRaf=requestAnimationFrame(archTick);
+    }
+    function setArchive(v){
+      archive=v;KUP.store.set('tallArchive',v);
+      if(v&&!archRaf)archRaf=requestAnimationFrame(archTick);
+      else if(!v&&!archRaf)archTick();
+    }
+    if(archive)archRaf=requestAnimationFrame(archTick);
+    (function(){
+      let sw=null;
+      const paintSw=()=>{if(sw)sw.setAttribute('aria-checked',archive?'true':'false');};
+      KUP.addDevSection({
+        id:'tallArchive',title:'ARŞİV: BEYAZ ÇİZGİLİ TASARIM',
+        render(body){
+          const row=document.createElement('div');row.className='tgl-row';
+          const t=document.createElement('span');t.textContent='Eski karo tasarımını göster';
+          sw=document.createElement('button');sw.className='tgl';sw.type='button';sw.setAttribute('role','switch');sw.setAttribute('aria-label','Eski karo tasarımı');
+          sw.appendChild(document.createElement('i'));
+          sw.addEventListener('click',()=>{setArchive(!archive);paintSw();C.pluck(C.SCALE[archive?5:3],.25,0,.6);});
+          row.appendChild(t);row.appendChild(sw);body.appendChild(row);
+          const n=document.createElement('p');n.className='note';
+          n.textContent='Yüksek karolar için tasarlanan beyaz çizgili görünüm: duvarda taş kursları, üstte parlak çerçeve, temas halkası ve yükselme efektleri. Açınca her karoda ışıklı çerçeve görünür; yüksek karolarda tam tasarım çalışır. Oyunda varsayılan olarak kapalıdır.';
+          body.appendChild(n);paintSw();
+        },
+        onReset(){setArchive(false);paintSw();}
+      });
+    })();
+
+    /* hedefler yerleşmeden ÖNCE planla: hedef ve buz çözücüleri geçişleri bilsin */
+    KUP.on('prepare',()=>plan(false));
+    KUP.on('land',e=>{const t=C.tiles.get(C.key(e.x,e.z));if(t&&t.tl){t.tl.pulse=C.now;t.tl.shT=C.now;}});
+    KUP.on('leave',e=>{const t=C.tiles.get(C.key(e.x,e.z));if(t&&t.tl)t.tl.pulse=C.now-.8;});
+
+    KUP.addTestMechanic({
+      id:'tallTiles',label:'Yüksek karolar',tag:'DENEME',
+      note:'Platolar ve merdivenler: küp bir kademe (yarım karo) yüksekliğe çıkıp inebilir; ikiden fazla fark aşılamaz ve küp çarpıp geri döner. Yüksek alana çıkmak için merdiven gibi kademeli karolar kullanılır. Yükseklik ve alan sayısı bölümle artar. Uçurumlu yerleşim her yeni bölümde oluşur; anahtarı bölüm ortasında açarsan uçurumsuz yumuşak yamaçlar kurulur.',
+      apply(v){if(v===enabled)return;enabled=v;if(v)plan(true);else lowerAll();},
+      actions:[{label:'Yükseklikleri yeniden dağıt',run(){lowerAll();plan(true);}}]
+    });
+    }catch(e){console.warn('[Yüksek karo hatası]',e);}
 })();
 </script>
 
